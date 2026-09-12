@@ -68,6 +68,11 @@ export type ApiCall = {
    *  differs from `idx` (the card's slot) once a selection run's calls are
    *  overlaid on the whole script's stubs. */
   runIdx?: number;
+  /** A call the last run made beyond the script's stubs — a loop's later
+   *  iterations, an `api.parallel` fan-out. Appended after the stubs by the
+   *  run overlay and kept there by every re-merge until the next run starts,
+   *  since no stub of its own can ever claim it. */
+  extra?: boolean;
   note?: string;
   isSse?: boolean;
   sseEvents?: SseEvent[];

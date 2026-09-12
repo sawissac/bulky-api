@@ -78,6 +78,8 @@ await api.ws(url, opts?)                   // WebSocket; returns { send(), close
 await api.io(url, opts?, onEvent?)         // Socket.IO; returns { send(), emit(), close() } (§3.10)
 
 await api.query.pgsql(sql, params?, opts?) // raw SQL against Postgres (§3.11)
+
+await api.parallel(tasks, opts?)           // run a batch at once; results in input order
 ```
 
 Every verb also exists on **`api.server.*`** (`api.server.get(...)`, etc.), which
@@ -85,6 +87,12 @@ routes the call through the app's own proxy at `/api/proxy`. Reach for it when
 CORS blocks the browser from calling a host directly.
 
 Each non-SSE call resolves to `{ data, status, headers, ok }`.
+
+`api.parallel([...])` takes promises (`api.get(a)`, already in flight) or
+thunks (`() => api.get(a)`) and resolves like `Promise.all`; with
+`{ limit: n }` at most `n` thunks run at a time, the rest starting as slots
+free up. Each call gets its own card as it starts, and in step mode each Next
+releases one paused call, oldest first.
 
 The runtime also injects `expect(...)` and `api.assert(...)` for checks (§3.5),
 `sleep(ms)` for delays, `api.file(accept?)` / `api.form(fields)` for uploads

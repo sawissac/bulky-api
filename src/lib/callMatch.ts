@@ -31,10 +31,22 @@ export function displayUrl(expr: string | undefined): string {
 }
 
 /**
+ * The forms a call's url takes that another record of the same call could
+ * carry: its `url` and its normalized `urlExpr`. A stub's `url` is the
+ * analyzer's best static expansion (`{{baseUrl}}/people`, a `${local}`
+ * substituted) while a live call's `urlExpr` is the string the run built
+ * before `{{var}}` resolution — the same text, so the keys must cross.
+ */
+function urlKeys(call: ApiCall): string[] {
+  const keys = [call.url, normalizeUrlExpr(call.urlExpr)];
+  return keys.filter((k) => k !== "");
+}
+
+/**
  * Index of the first entry in `pool` that is the same call as `call` — same
- * method, and either the same resolved url or the same pre-interpolation
- * expression. A `{{var}}` the analyzer can't expand only ever matches on the
- * second key, since the run resolved it and the stub did not.
+ * method, and any of one's url forms equal to any of the other's (see
+ * {@link urlKeys}). A `{{var}}` the analyzer can't expand never matches on
+ * the resolved url, since the run resolved it and the stub did not.
  *
  * `used` excludes indices already claimed, so a script that fires the same
  * request twice pairs them up in order instead of both landing on the first.
@@ -45,12 +57,11 @@ export function findCallIndex(
   pool: ApiCall[],
   used: ReadonlySet<number>,
 ): number {
-  const expr = normalizeUrlExpr(call.urlExpr);
+  const keys = new Set(urlKeys(call));
   return pool.findIndex(
     (c, i) =>
       !used.has(i) &&
       c.method === call.method &&
-      (c.url === call.url ||
-        (expr !== "" && normalizeUrlExpr(c.urlExpr) === expr)),
+      urlKeys(c).some((k) => keys.has(k)),
   );
 }

@@ -43,31 +43,33 @@ export function useScriptRunner() {
   const stepMode = useSelector(selectStepMode);
   const callTimeout = useSelector(selectCallTimeout);
 
-  const stepResumeRef = useRef<(() => void) | null>(null);
+  // Calls paused in step mode, oldest first. More than one waits at a time
+  // when `api.parallel` fans out, so each Next releases exactly one of them
+  // rather than the last to arrive clobbering the rest.
+  const stepQueueRef = useRef<Array<() => void>>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const socketRegistryRef = useRef<Map<number, SocketHandle>>(new Map());
 
   const waitForNext = useCallback((): Promise<void> => {
     return new Promise((resolve) => {
-      stepResumeRef.current = resolve;
+      stepQueueRef.current.push(resolve);
       dispatch(setPaused(true));
     });
   }, [dispatch]);
 
   const onNext = useCallback(() => {
-    if (stepResumeRef.current) {
-      stepResumeRef.current();
-      stepResumeRef.current = null;
-      dispatch(setPaused(false));
+    const resume = stepQueueRef.current.shift();
+    if (resume) {
+      resume();
+      if (stepQueueRef.current.length === 0) dispatch(setPaused(false));
     }
   }, [dispatch]);
 
   const onStop = useCallback(() => {
     abortControllerRef.current?.abort();
     // If paused in step mode, resume so the script can see the abort and exit
-    if (stepResumeRef.current) {
-      stepResumeRef.current();
-      stepResumeRef.current = null;
+    if (stepQueueRef.current.length) {
+      stepQueueRef.current.splice(0).forEach((resume) => resume());
       dispatch(setPaused(false));
     }
   }, [dispatch]);
@@ -156,7 +158,7 @@ export function useScriptRunner() {
         { list: connections, active: activeConnection },
       );
 
-      stepResumeRef.current = null;
+      stepQueueRef.current = [];
       abortControllerRef.current = null;
       if (Object.keys(extractedVars).length > 0)
         dispatch(setExtractedVars(extractedVars));

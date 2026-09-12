@@ -50,6 +50,24 @@ type CallOpts = {
 
 /** Connection options for `api.query.pgsql`. Everything is optional — a script
  *  that keeps its connection string in the environment passes nothing. */
+/** One entry of an `api.parallel` batch: a call already in flight, or a
+ *  thunk that starts one when a worker picks it up. Only the thunk form can
+ *  be throttled — a promise is already running by the time it is passed. */
+type ParallelTask<T> = Promise<T> | (() => Promise<T>);
+
+type ParallelOpts = {
+  /** Most tasks in flight at once. Unset runs the whole batch together. */
+  limit?: number;
+};
+
+type ParallelResults<T extends readonly ParallelTask<unknown>[]> = {
+  -readonly [K in keyof T]: T[K] extends () => Promise<infer R>
+    ? R
+    : T[K] extends Promise<infer R>
+      ? R
+      : never;
+};
+
 type SqlOpts = {
   /** Name of a connection saved in the DB pane. Omit to use the collection's
    *  active connection; a name that matches none fails the call rather than
@@ -1249,6 +1267,34 @@ export async function runScript(
     }
   };
 
+  // Runs a batch of calls concurrently and resolves with their results in
+  // input order, like `Promise.all`. Each call still lands its own card the
+  // moment it starts, so the panel shows them filling in side by side. With
+  // `limit`, thunks are handed to that many workers and started as slots
+  // free up — the way to fan out over a list without hammering the host.
+  const parallel = async <T extends readonly ParallelTask<unknown>[] | []>(
+    tasks: T,
+    opts: ParallelOpts = {},
+  ): Promise<ParallelResults<T>> => {
+    if (abortSignal?.aborted) throw new Error("Script aborted");
+    const total = tasks.length;
+    const limit = Math.min(
+      total,
+      Math.max(1, Math.floor(Number(opts.limit) || total)),
+    );
+    const results = new Array<unknown>(total);
+    let next = 0;
+    const worker = async () => {
+      while (next < total) {
+        const i = next++;
+        const task = tasks[i] as ParallelTask<unknown>;
+        results[i] = await (typeof task === "function" ? task() : task);
+      }
+    };
+    await Promise.all(Array.from({ length: limit }, worker));
+    return results as ParallelResults<T>;
+  };
+
   const api = {
     get: (url: string, opts?: CallOpts) =>
       makeCall("GET", url, null, opts, false),
@@ -1293,6 +1339,7 @@ export async function runScript(
       opts?: IoOpts,
       onEvent?: (event: { event: string; data: unknown }) => void,
     ) => makeIoCall(url, opts, onEvent),
+    parallel,
     _note: (msg: string) => {
       pendingNote = msg;
     },

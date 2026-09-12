@@ -72,7 +72,7 @@ function applyStored(nc: ApiCall, existing: ApiCall): ApiCall {
 function mergeCallsInto(
   analyzedCalls: ApiCall[],
   storedCalls: ApiCall[],
-  positional: boolean,
+  slotOf: (analyzedIndex: number) => number | undefined,
 ): { calls: ApiCall[]; usedOld: Set<number> } {
   const usedOld = new Set<number>();
   if (storedCalls.length === 0) return { calls: analyzedCalls, usedOld };
@@ -89,26 +89,40 @@ function mergeCallsInto(
     return applyStored(nc, storedCalls[idx]);
   });
 
-  // Pass 3: positional fallback for dynamic URLs neither key can pair. Only
-  // safe when both lists came from the same script — a selection run's
-  // indices don't line up with the whole script's.
+  // Pass 3: positional fallback for dynamic URLs neither key can pair — a
+  // `${local}` the analyzer left verbatim, a url built at runtime. `slotOf`
+  // says which stored index a stub's position corresponds to, since the two
+  // lists only line up index-for-index when both came from the same script.
   for (let i = 0; i < analyzedCalls.length; i++) {
     if (result[i]) continue;
-    const stored = positional ? storedCalls[i] : undefined;
+    const slot = slotOf(i);
+    const stored = slot === undefined ? undefined : storedCalls[slot];
     result[i] =
-      stored && !usedOld.has(i) && stored.method === analyzedCalls[i].method
-        ? (usedOld.add(i), applyStored(analyzedCalls[i], stored))
+      slot !== undefined &&
+      stored &&
+      !usedOld.has(slot) &&
+      stored.method === analyzedCalls[i].method
+        ? (usedOld.add(slot), applyStored(analyzedCalls[i], stored))
         : analyzedCalls[i];
   }
 
   return { calls: result as ApiCall[], usedOld };
 }
 
+/**
+ * Stubs first, then the stored run's `extra` calls nothing claimed — a loop's
+ * second and third iterations, a fan-out's tail. Without them a re-analyze
+ * after the run trims the list back to one card per call site. A stored call
+ * that is neither claimed nor `extra` was a call site the script no longer
+ * has, so it drops.
+ */
 function mergeCalls(
   analyzedCalls: ApiCall[],
   storedCalls: ApiCall[],
 ): ApiCall[] {
-  return mergeCallsInto(analyzedCalls, storedCalls, true).calls;
+  const { calls, usedOld } = mergeCallsInto(analyzedCalls, storedCalls, (i) => i);
+  const extras = storedCalls.filter((c, i) => c.extra && !usedOld.has(i));
+  return [...calls, ...extras].map((c, i) => ({ ...c, idx: i }));
 }
 
 /**
@@ -125,8 +139,20 @@ function mergeCalls(
 function overlayRunCalls(preview: ApiCall[], live: ApiCall[]): ApiCall[] {
   if (preview.length === 0) return live;
 
-  const { calls, usedOld } = mergeCallsInto(preview, live, false);
-  const extras = live.filter((_, i) => !usedOld.has(i));
+  // The run only makes the calls whose stubs were marked pending at run
+  // start, in script order, so the k-th live call is the k-th pending stub's.
+  // That pairs a stub whose url the analyzer couldn't resolve — without it the
+  // live call lands as an extra card and the stub spins forever.
+  const pendingSlots = new Map<number, number>();
+  preview.forEach((c, i) => {
+    if (c.status === "pending") pendingSlots.set(i, pendingSlots.size);
+  });
+  const { calls, usedOld } = mergeCallsInto(preview, live, (i) =>
+    pendingSlots.get(i),
+  );
+  const extras = live
+    .filter((_, i) => !usedOld.has(i))
+    .map((c) => ({ ...c, extra: true }));
 
   return [...calls, ...extras].map((c, i) => ({ ...c, idx: i }));
 }

@@ -108,45 +108,6 @@ const updated = await api.put(\`\${env.baseUrl}/posts/\${created.data.id}\`, {
 console.log('Done! Ran 4 chained API calls.');
 `;
 
-export const INITIAL_COLLECTIONS: Collection[] = [
-  {
-    id: 'mock-collection-1',
-    name: 'JSONPlaceholder',
-    open: true,
-    items: [
-      {
-        id: 'mock-item-1',
-        name: 'Get Users',
-        method: 'GET',
-        code: `const r = await api.get(env.baseUrl + '/users');\nconsole.log('status:', r.status, '| count:', r.data.length);\n`,
-      },
-    ],
-    environments: [
-      {
-        id: 'mock-env-dev',
-        name: 'Development',
-        vars: {
-          baseUrl: 'https://jsonplaceholder.typicode.com',
-          token: 'dev-a1b2c3d4e5f6',
-          apiKey: 'dev-key-123456',
-          timeout: '5000',
-        },
-      },
-      {
-        id: 'mock-env-prod',
-        name: 'Production',
-        vars: {
-          baseUrl: 'https://api.example.com',
-          token: 'prod-9f8e7d6c5b4a',
-          apiKey: 'prod-key-987654',
-          timeout: '10000',
-        },
-      },
-    ],
-    envIdx: 0,
-  },
-];
-
 export const DOCS_CODE = `// ═══════════════════════════════════════════════════════
 //  BULKY API — SCRIPT REFERENCE
 // ═══════════════════════════════════════════════════════
@@ -248,7 +209,7 @@ Everything the runtime injects into a script: the \`api\` client, the \`env\` ba
 
 | Name | Type | Description |
 |------|------|-------------|
-| \`api\` | \`BulkyApi\` | HTTP client — \`get\`, \`post\`, \`put\`, \`patch\`, \`delete\`, \`options\`, \`head\`, \`sse\`, \`stream\`, \`assert\`, plus \`query.pgsql\` for raw SQL |
+| \`api\` | \`BulkyApi\` | HTTP client — \`get\`, \`post\`, \`put\`, \`patch\`, \`delete\`, \`options\`, \`head\`, \`sse\`, \`stream\`, \`parallel\`, \`assert\`, plus \`query.pgsql\` for raw SQL |
 | \`env\` | \`Record<string, string>\` | Active environment variables. Writable — \`env.x = v\` / \`env.set('x', v)\` is visible to later calls |
 | \`console\` | \`Console\` | \`.log\` / \`.warn\` / \`.error\` / \`.info\` — output lands in the Console panel |
 | \`expect\` | \`(actual) => Matchers\` | Records a pass/fail check. Never throws — see **Assertions** |
@@ -267,6 +228,7 @@ Everything the runtime injects into a script: the \`api\` client, the \`env\` ba
 | \`api.head(url, opts?)\` | — | \`Promise<Response<T>>\` — headers only, no body |
 | \`api.sse(url, opts?, onEvent?)\` | — | \`Promise<{ close(), done }>\` |
 | \`api.stream(url, body?, opts?, onEvent?)\` | JSON | \`Promise<{ close(), done }>\` — POST (default) an \`event-stream\` reply, rendered live |
+| \`api.parallel(tasks, opts?)\` | — | \`Promise<Result[]>\` — runs calls at once, results in input order, see **Parallel calls** |
 | \`api.assert(condition, message?)\` | — | \`void\` — records a pass/fail, never throws |
 | \`api.file(accept?)\` | — | \`Promise<File>\` — opens a native file picker |
 | \`api.form(fields)\` | — | \`FormData\` — builds a multipart body |
@@ -330,6 +292,29 @@ await api.post(env.baseUrl + '/upload', picked);
 \`\`\`
 
 Neither body is JSON-encoded and neither gets the default \`Content-Type: application/json\` — the browser sets its own (the multipart boundary for \`api.form()\`, the file's type for a bare \`File\`/\`Blob\`). Works through \`api.server.*\` too: the proxy streams the upload to the target rather than wrapping it in JSON.
+
+### Parallel calls
+
+\`api.parallel(tasks, opts?)\` fires a batch together and resolves with the results in input order, like \`Promise.all\`. Every call still gets its own card the moment it starts, so the panel fills in side by side instead of one at a time.
+
+\`\`\`ts
+const [users, posts] = await api.parallel([
+  api.get('{{baseUrl}}/users'),
+  api.get('{{baseUrl}}/posts'),
+]);
+\`\`\`
+
+Pass thunks and a \`limit\` to fan out over a list without hammering the host — at most \`limit\` calls are in flight, the rest start as slots free up. Only thunks can be throttled: a bare promise is already running by the time it is passed.
+
+\`\`\`ts
+const ids = [1, 2, 3, 4, 5, 6];
+const users = await api.parallel(
+  ids.map((id) => () => api.get(\`{{baseUrl}}/users/\${id}\`)),
+  { limit: 3 },
+);
+\`\`\`
+
+One rejection rejects the whole batch, the way \`Promise.all\` does — wrap a call that may fail in its own \`try\` inside the thunk if the others should still count. In **step mode** each Next releases one paused call, oldest first.
 
 ### Postgres
 
@@ -539,6 +524,52 @@ console.log('Done! Ran 4 chained API calls.');
 
 > Run in **step mode** to pause between calls and inspect each response before the next one fires.`,
     code: SAMPLE_CODE,
+  },
+  {
+    label: "Parallel calls",
+    method: "GET",
+    markdown: `## Parallel calls
+
+Independent requests don't need to wait on each other. \`api.parallel\` fires a batch together and hands back the results in the order you passed them, like \`Promise.all\` — each call still gets its own card as it starts.
+
+| Form | Use when |
+|------|----------|
+| \`api.parallel([api.get(a), api.get(b)])\` | A fixed handful of calls, all at once |
+| \`api.parallel(list.map((x) => () => api.get(x)), { limit: n })\` | Fanning out over a list — at most \`n\` in flight |
+
+\`\`\`ts
+// Two independent lists, one round trip of waiting
+const [users, posts] = await api.parallel([
+  api.get(env.baseUrl + '/users'),
+  api.get(env.baseUrl + '/posts'),
+]);
+console.log(users.data.length, 'users,', posts.data.length, 'posts');
+
+// One call per user, three at a time
+const ids = users.data.slice(0, 6).map((u) => u.id);
+const todos = await api.parallel(
+  ids.map((id) => () => api.get(\`\${env.baseUrl}/todos?userId=\${id}\`)),
+  { limit: 3 },
+);
+console.log('todo counts:', todos.map((t) => t.data.length));
+\`\`\`
+
+> A rejection rejects the whole batch. Catch inside the thunk if one failure shouldn't sink the rest.`,
+    code: `// Two independent lists, one round trip of waiting
+const [users, posts] = await api.parallel([
+  api.get(env.baseUrl + '/users'),
+  api.get(env.baseUrl + '/posts'),
+]);
+console.log(users.data.length, 'users,', posts.data.length, 'posts');
+
+// One call per user, three at a time
+const ids = users.data.slice(0, 6).map((u) => u.id);
+const todos = await api.parallel(
+  ids.map((id) => () => api.get(\`\${env.baseUrl}/todos?userId=\${id}\`)),
+  { limit: 3 },
+);
+console.log('todo counts:', todos.map((t) => t.data.length));
+`,
   },
   {
     label: "Assertions",
@@ -1033,4 +1064,3 @@ expect(r.rowCount).toBeGreaterThan(0);`,
   },
 ];
 
-export const INITIAL_ENVIRONMENTS: Environment[] = [];

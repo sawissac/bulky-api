@@ -1,6 +1,5 @@
 import { createSlice, createSelector, nanoid, type PayloadAction } from '@reduxjs/toolkit';
 import {
-  INITIAL_COLLECTIONS,
   type Collection,
   type CollectionItem,
   type DbConnection,
@@ -22,8 +21,8 @@ type CollectionsState = {
 };
 
 const initialState: CollectionsState = {
-  collections: INITIAL_COLLECTIONS,
-  activeId: INITIAL_COLLECTIONS[0]?.items[0]?.id ?? null,
+  collections: [],
+  activeId: null,
   recentItemIds: [],
   baseVars: {},
 };

@@ -231,6 +231,24 @@ interface BulkyQuery {
   ): Promise<BulkySqlResult<T>>;
 }
 
+/** One entry of an \`api.parallel\` batch: a call already in flight, or a
+ *  thunk that starts one when a worker picks it up. */
+type BulkyParallelTask<T> = Promise<T> | (() => Promise<T>);
+
+interface BulkyParallelOpts {
+  /** Most tasks in flight at once. Unset runs the whole batch together. Only
+   *  thunks can be throttled — a promise is already running when passed. */
+  limit?: number;
+}
+
+type BulkyParallelResults<T extends readonly BulkyParallelTask<unknown>[]> = {
+  -readonly [K in keyof T]: T[K] extends () => Promise<infer R>
+    ? R
+    : T[K] extends Promise<infer R>
+      ? R
+      : never;
+};
+
 interface BulkyServer extends BulkyHttp, BulkyStream {}
 
 interface BulkyApi extends BulkyHttp, BulkyStream, BulkySocket {
@@ -241,6 +259,15 @@ interface BulkyApi extends BulkyHttp, BulkyStream, BulkySocket {
   server: BulkyServer;
   /** Raw database queries, one property per driver. */
   query: BulkyQuery;
+  /** Runs a batch of calls at once and resolves with their results in input
+   *  order, like \`Promise.all\`. Pass promises to start everything together,
+   *  or thunks (\`() => api.get(...)\`) with \`limit\` to cap how many run at
+   *  a time — the way to fan out over a list without hammering the host. Each
+   *  call gets its own card as it starts; a rejection rejects the batch. */
+  parallel<T extends readonly BulkyParallelTask<unknown>[] | []>(
+    tasks: T,
+    opts?: BulkyParallelOpts,
+  ): Promise<BulkyParallelResults<T>>;
   /** Records a pass/fail check against the run. Never throws — a falsy
    *  \`condition\` is collected and shown on the call card and run summary. */
   assert(condition: unknown, message?: string): void;

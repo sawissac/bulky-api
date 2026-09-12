@@ -58,8 +58,28 @@ function isInsideComment(code: string, idx: number): boolean {
   return inLineComment || inBlockComment;
 }
 
+/**
+ * Locals bound once to a plain string — `const people = '/people'`, or a
+ * template with no `${}` of its own — so a url that names one, whether as
+ * the whole argument (`api.get(url)`) or interpolated (`` `{{baseUrl}}${people}` ``),
+ * previews as the string the run will actually build. Any other binding (a
+ * `let`, an expression, a template that interpolates) is left for the run.
+ */
+function literalConsts(code: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const re = /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(['"`])((?:\\.|(?!\2)[^\\\n])*)\2\s*;?/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(code)) !== null) {
+    if (isInsideComment(code, m.index)) continue;
+    if (m[2] === "`" && m[3].includes("${")) continue;
+    out[m[1]] = m[3];
+  }
+  return out;
+}
+
 export function analyzeScript(code: string, envVars: Record<string, string> = {}): ApiCall[] {
   const calls: ApiCall[] = [];
+  const consts = literalConsts(code);
   // The optional <...> lets a typed call — api.get<User>(url) — still match.
   // `sse`/`stream` must be included here even though the runtime skips this
   // preview's fields (status/response/etc — see the loop body) for them: the
@@ -70,7 +90,10 @@ export function analyzeScript(code: string, envVars: Record<string, string> = {}
   // than actually ran, silently truncating (or, if it was the *only* call,
   // wholly clearing) that stored call the moment the 300ms post-run
   // re-analyze in BulkyApp.tsx fires.
-  const re = /await\s+api\.(?:(server|query)\.)?(get|post|put|patch|delete|options|head|sse|stream|ws|io|pgsql)\s*(?:<[^>()]*>)?\s*\(/gi;
+  // `await` is optional: a call inside `api.parallel([...])` — or handed to
+  // `Promise.all` — fires without one. The lookbehind keeps `myapi.get(`
+  // from matching now that `await ` no longer anchors the start.
+  const re = /(?<![\w$.])(?:await\s+)?api\.(?:(server|query)\.)?(get|post|put|patch|delete|options|head|sse|stream|ws|io|pgsql)\s*(?:<[^>()]*>)?\s*\(/gi;
   let m: RegExpExecArray | null;
 
   while ((m = re.exec(code)) !== null) {
@@ -132,6 +155,8 @@ export function analyzeScript(code: string, envVars: Record<string, string> = {}
     let url = urlExpr;
     if (/^['"`]/.test(url) && url.length > 1) url = url.slice(1, -1);
     url = url.replace(/\$\{env\.(\w+)\}/g, (_, k) => envVars[k] || `[${k}]`);
+    url = url.replace(/\$\{([A-Za-z_$][\w$]*)\}/g, (whole, k) => consts[k] ?? whole);
+    if (/^[A-Za-z_$][\w$]*$/.test(url) && url in consts) url = consts[url];
     url = url.replace(/env\.(\w+)/g, (_, k) => envVars[k] || `[${k}]`);
     if (isSql) {
       // A SQL statement is not a URL: the concatenation squashing below would

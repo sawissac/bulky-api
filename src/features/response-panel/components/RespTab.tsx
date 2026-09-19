@@ -730,9 +730,9 @@ function ModePill({
         padding: "2px 8px",
         borderRadius: 9999,
         cursor: active ? "default" : "pointer",
-        border: `1px solid ${active ? T.cyan : T.border}`,
-        background: active ? `${T.cyan}15` : "transparent",
-        color: active ? T.cyan : T.textDim,
+        border: `1px solid ${active ? T.accent : T.border}`,
+        background: active ? `${T.accent}15` : "transparent",
+        color: active ? T.accent : T.textDim,
         fontFamily: "var(--font-display)",
         fontSize: 8,
         fontWeight: 700,
@@ -1182,7 +1182,7 @@ function QueryMatches({
                       fontFamily: "var(--font-mono)",
                       fontSize: 9,
                       fontWeight: 700,
-                      color: T.cyan,
+                      color: T.accent,
                       flexShrink: 0,
                       overflowWrap: "anywhere",
                     }}
@@ -1418,15 +1418,15 @@ function HighlightedPre({
         autoEscape
         activeIndex={activeIndex}
         highlightStyle={{
-          background: `${T.cyan}38`,
+          background: `${T.accent}38`,
           color: T.textBright,
           borderRadius: 2,
           padding: "0 1px",
         }}
         activeStyle={{
-          background: `${T.cyan}80`,
+          background: `${T.accent}80`,
           color: T.textBright,
-          outline: `1px solid ${T.cyan}`,
+          outline: `1px solid ${T.accent}`,
           borderRadius: 2,
           padding: "0 1px",
         }}
@@ -1661,7 +1661,7 @@ export default function RespTab({ T, call }: Props) {
         <Loader2
           size={12}
           style={{ animation: "spin 0.7s linear infinite" }}
-          color={T.cyan}
+          color={T.accent}
         />
         <span style={{ fontFamily: "var(--font-description)", fontSize: 12 }}>
           Awaiting response…
@@ -1897,7 +1897,7 @@ export default function RespTab({ T, call }: Props) {
           T={T}
           text={tsOutput}
           query={activeQuery}
-          color={T.cyan}
+          color={T.accent}
           activeIndex={activeMatch}
           data-testid="resp-tab-body"
         />

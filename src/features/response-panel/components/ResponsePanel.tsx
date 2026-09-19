@@ -376,7 +376,7 @@ function ResponsePanel({
         c.status === "idle"
           ? T.border
           : c.status === "pending"
-            ? T.cyan
+            ? T.accent
             : statusColor(c.statusCode, T);
       if (heat) {
         const t = Math.min(1, heatLevel + (i / 3) * (1 - heatLevel) * 0.6);
@@ -385,7 +385,7 @@ function ResponsePanel({
         const b = Math.round(50 * t + 160 * (1 - t));
         bg = `rgb(${r},${g},${b})`;
       } else if (overflow) {
-        bg = [T.cyan, T.warn, T.error, T.error][i] ?? T.error;
+        bg = [T.accent, T.warn, T.error, T.error][i] ?? T.error;
       }
       return { key: i, bg, status: c.status };
     });

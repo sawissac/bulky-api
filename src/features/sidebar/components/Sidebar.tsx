@@ -84,7 +84,7 @@ function Sidebar({ T }: SidebarProps) {
 
   return (
     <div
-      className={`${textureClass} flex h-full w-full flex-col overflow-hidden bg-app-sidebar`}
+      className={`${textureClass} flex h-full w-full flex-col overflow-hidden bg-app-sidebar/5`}
     >
       <div
         id="sidebar-pane"

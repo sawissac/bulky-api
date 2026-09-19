@@ -496,9 +496,11 @@ export const selectRecentItems = (s: { collections: CollectionsState }) => {
 };
 
 // --- Environment Selectors ---
+const EMPTY_ENVIRONMENTS: Environment[] = [];
+
 export const selectEnvironments = (s: { collections: CollectionsState }) => {
   const col = selectActiveCollection(s);
-  return col?.environments ?? [];
+  return col?.environments ?? EMPTY_ENVIRONMENTS;
 };
 
 export const selectEnvIdx = (s: { collections: CollectionsState }) => {

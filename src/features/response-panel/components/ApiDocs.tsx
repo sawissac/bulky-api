@@ -122,7 +122,7 @@ export default function ApiDocs({ T, calls }: Props) {
           <div className="prose prose-invert max-w-none" style={{ fontSize: 12, minWidth: 0 }}>
             <ReactMarkdown
               components={{
-                h1: ({node, ...props}) => <h1 style={{ color: T.cyan, fontSize: '1.5em', marginTop: '0.5em', marginBottom: '1em', fontWeight: 600, fontFamily: 'var(--font-title)' }} {...props} />,
+                h1: ({node, ...props}) => <h1 style={{ color: T.accent, fontSize: '1.5em', marginTop: '0.5em', marginBottom: '1em', fontWeight: 600, fontFamily: 'var(--font-title)' }} {...props} />,
                 h2: ({node, ...props}) => <h2 style={{ color: T.textBright, fontSize: '1.2em', marginTop: '1.5em', marginBottom: '0.5em', borderBottom: `1px solid ${T.border}`, paddingBottom: '4px', fontWeight: 600, fontFamily: 'var(--font-title)' }} {...props} />,
                 h3: ({node, ...props}) => <h3 style={{ color: T.textBright, fontSize: '1.1em', marginTop: '1em', marginBottom: '0.5em', fontWeight: 600, fontFamily: 'var(--font-title)' }} {...props} />,
                 p: ({node, ...props}) => <p style={{ marginBottom: '1em', lineHeight: 1.6 }} {...props} />,

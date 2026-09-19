@@ -117,11 +117,11 @@ export default function ApiWaterfall({ T }: Props) {
           const barLeft = (startMs / totalMs) * 100;
           const barWidth = Math.max(((endMs - startMs) / totalMs) * 100, call.status === 'pending' ? 100 - barLeft : 1);
           const mc = methodColor(call.method, T);
-          const sc = call.status === 'idle' ? T.border : call.status === 'pending' ? T.cyan : statusColor(call.statusCode, T);
+          const sc = call.status === 'idle' ? T.border : call.status === 'pending' ? T.accent : statusColor(call.statusCode, T);
           // The bar tracks the theme accent, not the HTTP status — only a failed
           // call breaks to the error color so it still stands out. The status
           // code chip below keeps `sc` (green/amber/red) as the outcome signal.
-          const barColor = call.status === 'idle' ? T.border : call.status === 'error' ? T.error : T.cyan;
+          const barColor = call.status === 'idle' ? T.border : call.status === 'error' ? T.error : T.accent;
           const isPending = call.status === 'pending';
 
           const url = displayUrl(call.url);
@@ -203,7 +203,7 @@ export default function ApiWaterfall({ T }: Props) {
       {calls.some((c) => c.duration > 0) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 10px 0', gap: 6 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: T.textDim }}>total</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: T.cyan, fontWeight: 700 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: T.accent, fontWeight: 700 }}>
             {totalMs}ms
           </span>
         </div>

@@ -417,9 +417,9 @@ export default function TableTab({ T, call }: Props) {
                   padding: "2px 8px",
                   borderRadius: 9999,
                   cursor: i === activeIdx ? "default" : "pointer",
-                  border: `1px solid ${i === activeIdx ? T.cyan : T.border}`,
-                  background: i === activeIdx ? `${T.cyan}15` : "transparent",
-                  color: i === activeIdx ? T.cyan : T.textDim,
+                  border: `1px solid ${i === activeIdx ? T.accent : T.border}`,
+                  background: i === activeIdx ? `${T.accent}15` : "transparent",
+                  color: i === activeIdx ? T.accent : T.textDim,
                   fontFamily: "var(--font-display)",
                   fontSize: 8,
                   fontWeight: 700,
@@ -539,7 +539,7 @@ export default function TableTab({ T, call }: Props) {
                           touchAction: "none",
                           userSelect: "none",
                           background: header.column.getIsResizing()
-                            ? T.cyan
+                            ? T.accent
                             : "transparent",
                         }}
                       />

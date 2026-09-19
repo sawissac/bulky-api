@@ -247,7 +247,7 @@ export default function CallCard({
   const sc = statusColor(call.statusCode, T);
 
   const borderColor = isOpen
-    ? T.cyan
+    ? T.accent
     : call.status === "success"
       ? `${T.success}70`
       : call.status === "error"
@@ -294,7 +294,7 @@ export default function CallCard({
           style={{
             padding: "5px 12px 5px 15px",
             borderLeft: `3px solid ${T.borderAccent}`,
-            background: T.cyanFaint,
+            background: T.accentFaint,
             borderBottom: `1px solid ${T.borderAccent}`,
             overflow: "hidden",
             minWidth: 0,
@@ -307,7 +307,7 @@ export default function CallCard({
                   fontFamily: "var(--font-description)",
                   fontSize: 11,
                   fontWeight: 500,
-                  color: T.cyan,
+                  color: T.accent,
                   display: "block",
                   whiteSpace: "wrap",
                   overflow: "hidden",
@@ -348,7 +348,7 @@ export default function CallCard({
             width: 18,
             height: 18,
             borderRadius: 5,
-            background: isOpen ? T.cyanFaint : T.bgHover,
+            background: isOpen ? T.accentFaint : T.bgHover,
             border: `1px solid ${isOpen ? T.borderAccent : T.border}`,
             display: "flex",
             alignItems: "center",
@@ -361,7 +361,7 @@ export default function CallCard({
               fontFamily: "var(--font-mono)",
               fontSize: 8,
               fontWeight: 700,
-              color: isOpen ? T.cyan : T.textDim,
+              color: isOpen ? T.accent : T.textDim,
             }}
           >
             {call.idx + 1}
@@ -475,7 +475,7 @@ export default function CallCard({
         {call.status === "pending" && (
           <Loader2
             size={10}
-            color={T.cyan}
+            color={T.accent}
             style={{ animation: "spin 0.7s linear infinite", flexShrink: 0 }}
           />
         )}
@@ -547,9 +547,9 @@ export default function CallCard({
                   padding: "2px 4px",
                   borderRadius: 4,
                   flexShrink: 0,
-                  background: isCached ? `${T.cyan}20` : "transparent",
-                  border: `1px solid ${isCached ? T.cyan : T.border}`,
-                  color: isCached ? T.cyan : T.textDim,
+                  background: isCached ? `${T.accent}20` : "transparent",
+                  border: `1px solid ${isCached ? T.accent : T.border}`,
+                  color: isCached ? T.accent : T.textDim,
                   cursor: "pointer",
                   transition: "all 0.15s",
                 }}
@@ -582,9 +582,9 @@ export default function CallCard({
                 padding: "2px 4px",
                 borderRadius: 4,
                 flexShrink: 0,
-                background: focused ? `${T.cyan}20` : "transparent",
-                border: `1px solid ${focused ? T.cyan : T.border}`,
-                color: focused ? T.cyan : T.textDim,
+                background: focused ? `${T.accent}20` : "transparent",
+                border: `1px solid ${focused ? T.accent : T.border}`,
+                color: focused ? T.accent : T.textDim,
                 cursor: "pointer",
                 transition: "all 0.15s",
               }}

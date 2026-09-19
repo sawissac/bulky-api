@@ -958,7 +958,7 @@ export default function CodeEditor({
               onClick={sendWsDraft}
               disabled={running || !wsDraft.trim()}
               className={ACTION_BTN}
-              style={{ background: T.cyan }}
+              style={{ background: T.accent }}
             >
               <Send size={13} aria-hidden="true" />
               Send

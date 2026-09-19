@@ -16,7 +16,8 @@ import {
   X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { THEMES, type Theme, type ThemeKey } from "@/lib/themes";
+import { OptionGrid } from "@/components/ui/option-grid";
+import { THEMES, themeVars, type Theme, type ThemeKey } from "@/lib/themes";
 import type { LayoutKey, PatternStyle } from "@/store/uiSlice";
 import {
   selectTheme,
@@ -33,18 +34,33 @@ import {
 } from "@/store/uiSlice";
 import * as ui from "@/lib/ui";
 
-const THEME_OPTIONS: Array<{ id: ThemeKey; label: string }> = [
-  { id: "midnight", label: "Midnight" },
-  { id: "ocean", label: "Ocean" },
-  { id: "light", label: "Chocolate" },
-  { id: "purple", label: "Amethyst" },
-  { id: "green", label: "Nature" },
-  { id: "rose", label: "Rose" },
-  { id: "amber", label: "Amber" },
-  { id: "slate", label: "Slate" },
-  { id: "flat", label: "Sunset" },
-  { id: "coffee", label: "Coffee" },
-];
+/** Every theme grouped under the hue it belongs to, so a palette sits beside
+ *  its light counterpart instead of somewhere else in one long strip. A pair
+ *  may be missing a half — Chocolate ships light-only. */
+const THEME_PAIRS: Array<{ label: string; dark?: ThemeKey; light?: ThemeKey }> =
+  [
+    { label: "Midnight", dark: "midnight", light: "midnight-light" },
+    { label: "Ocean", dark: "ocean", light: "ocean-light" },
+    { label: "Chocolate", light: "light" },
+    { label: "Amethyst", dark: "purple", light: "purple-light" },
+    { label: "Nature", dark: "green", light: "green-light" },
+    { label: "Rose", dark: "rose", light: "rose-light" },
+    { label: "Amber", dark: "amber", light: "amber-light" },
+    { label: "Slate", dark: "slate", light: "slate-light" },
+    { label: "Sunset", dark: "flat", light: "flat-light" },
+    { label: "Coffee", dark: "coffee", light: "coffee-light" },
+    { label: "Cyberpunk", dark: "cyberpunk", light: "cyberpunk-light" },
+    { label: "Retro", dark: "retro", light: "retro-light" },
+  ];
+
+/** The four tones that read as a whole palette at a glance — page, sidebar,
+ *  accent, bright text — rather than the accent alone. */
+const SWATCH_TONES = [
+  "bg",
+  "bgSidebar",
+  "accent",
+  "textBright",
+] as const satisfies ReadonlyArray<keyof Theme>;
 
 const LAYOUT_OPTIONS: Array<{
   id: LayoutKey;
@@ -97,61 +113,29 @@ const PATTERN_SWATCH_STYLE = {
   "--app-pattern-alpha": "1",
 } as React.CSSProperties;
 
-/** Corner-rounding class per pattern tile index, for the fixed single-row,
- *  4-column grid below — simpler than `THEME_CORNER_CLASS` since a 4-column
- *  grid of exactly 4 tiles has no responsive breakpoint to account for and
- *  only one row, so the end tiles each carry both their top and bottom
- *  corner instead of just one. */
-const PATTERN_CORNER_CLASS: Record<number, string> = {
-  0: "rounded-l-md",
-  3: "rounded-r-md",
-};
-
 /**
- * Segmented-group tile for a theme choice — color block on top, name below.
- * Carries a radius only on whichever of its own corners lands on the group's
- * own outer corner (rather than relying on the parent grid's
- * `overflow-hidden` to clip a square corner to its rounded edge, which some
- * renderers do not do reliably for an inset shadow), via `THEME_CORNER_CLASS`.
- * An interior tile — one that doesn't touch an outer edge of the grid — stays
- * square on all four corners, so a selected interior tile reads as a flush
- * cell rather than a floating rounded card. Sits in a `gap-px` grid whose
- * background shows through the gaps as the divider lines between tiles.
+ * Card for one palette in a {@link THEME_PAIRS} group. It carries no fill
+ * of its own beyond `bg-app-panel`,
+ * because each card is rendered with its own theme's `--app-*` variables
+ * inline — so `bg-app-panel`, `text-app-bright`, `border-app-border` and the
+ * accent ring all resolve to the palette that card selects, and the card
+ * previews the theme rather than describing it. Selection is an accent
+ * border plus a soft accent ring, both in the card's own accent.
  */
-const SWATCH_BTN =
-  "group relative flex flex-col items-center gap-1.5 bg-app-hover p-1.5 " +
-  "transition-colors duration-200 hover:bg-app-selected " +
-  "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-0 " +
-  "data-active:bg-app-accent-faint data-active:shadow-[inset_0_0_0_1.5px_var(--app-accent)]";
-
-/**
- * Corner-rounding class per theme tile index, hand-mapped to the exact grid
- * this builds: 10 tiles on `grid-cols-3` below `sm` (3 full rows plus a
- * trailing row holding only tile 9, so the two empty cells beside it need no
- * tile rounding — the parent's own clip handles them), `grid-cols-5` at `sm`
- * and up (10 tiles fills exactly 2 full rows). Tile 9 sits bottom-left on
- * mobile but bottom-right at `sm`, so it carries both and cancels the
- * mobile one there. A tile only rounds where it actually sits on one of the
- * grid's four outer corners at a given breakpoint, so an interior tile stays
- * square. Adding, removing, or reordering a theme requires redoing this by hand.
- */
-const THEME_CORNER_CLASS: Record<number, string> = {
-  0: "rounded-tl-md",
-  2: "rounded-tr-md sm:rounded-tr-none",
-  4: "sm:rounded-tr-md",
-  5: "sm:rounded-bl-md",
-  9: "rounded-bl-md sm:rounded-bl-none sm:rounded-br-md",
-};
+const PALETTE_CARD =
+  "relative flex min-w-0 flex-col gap-2 rounded-lg border border-app-border-mid bg-app-panel p-2.5 text-left " +
+  "transition-colors duration-200 hover:border-app-border-accent " +
+  "focus-visible:border-app-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/30 " +
+  "data-active:border-app-accent data-active:ring-2 data-active:ring-app-accent/30";
 
 /**
  * Segmented-group row for a layout choice — icon, name, detail, check.
  * Rounds only `first:rounded-t-md last:rounded-b-md`, matching whichever
- * corners the group container itself rounds — same reasoning as
- * {@link SWATCH_BTN}'s `THEME_CORNER_CLASS`, simplified because a 1-column
- * `divide-y` stack only ever has two outer corners to account for. An
- * interior row stays square. Sits in a `divide-y` stack whose divider lines
- * stand in for individual borders, so adjacent rows still read as one
- * control.
+ * corners the group container itself rounds. An interior row stays square.
+ * Sits in a `divide-y` stack whose divider lines stand in for individual
+ * borders, so adjacent rows still read as one control — unlike the
+ * standalone {@link OptionGrid} cards of the pattern picker, which sit apart
+ * in a gapped grid instead of a shared segmented frame.
  */
 const ROW_BTN =
   "group relative flex w-full items-center gap-3 bg-app-hover px-3 py-2.5 text-left first:rounded-t-md last:rounded-b-md " +
@@ -219,13 +203,16 @@ const NAV_BTN =
  * so they no longer stack behind `border-t` dividers — each owns just its
  * `ui.label` heading and its control. The theme grid, layout list and pattern
  * grid each render one selected option among their choices, marked by
- * `data-active` and `aria-pressed`. Theme is a grid of square tiles, each
- * filled with a diagonal gradient from that theme's actual accent color
- * (`Theme.cyan`) into a darker `color-mix` shade of the same color, so the
- * choice previews before it is applied; the selected tile gets a `Check`
- * badge over the swatch. This is one of two deliberate exceptions to the
- * flat "no gradients" rule in `@/lib/ui` — scoped to these decorative
- * swatches only, the other being the pattern grid below. Layout
+ * `data-active` and `aria-pressed`. Theme is a set of {@link THEME_PAIRS}
+ * groups — one bordered box per hue, holding that hue's dark and light
+ * palettes side by side (Chocolate ships light-only, so its box holds one
+ * card). Each card is rendered with its own palette's `--app-*` variables
+ * inline via `themeVars`, so its surface, label, accent border and `Check`
+ * badge all paint in the theme it selects: the card previews the palette on
+ * a panel drawn in a different one. Its swatch is the four tones that read
+ * as a palette at a glance ({@link SWATCH_TONES} — page, sidebar, accent,
+ * bright text) rather than the accent alone, so two themes sharing an accent
+ * are still told apart. Layout
  * is a stacked list of full-width rows, each carrying a lucide icon
  * (`PanelLeftRightDashed`/`TvMinimal`/`Form`/`Rows2`), a name, and a one-line
  * description of the resulting pane split; the selected row gets a trailing
@@ -239,29 +226,16 @@ const NAV_BTN =
  * Intensity slider beneath it — a plain `<input type="range">`,
  * `accent-app-accent` for its native thumb/track color — drives that live
  * setting (`patternOpacity`) and is hidden outright while `patternStyle` is
- * `'none'`, since there is nothing for it to scale. All three groups read as
- * one segmented button group rather than loose items: the group container's
- * own outer `border`+`rounded-lg` plus `gap-px`/`divide-y` (colored
- * `app-border`) draws the frame and the hairlines between members. Each
- * theme/pattern tile rounds only the corner(s) it actually shares with the
- * group's own outer corner, via `THEME_CORNER_CLASS`/`PATTERN_CORNER_CLASS`
- * — this does not depend on the parent's `overflow-hidden` clipping a
- * member's square corner down to the parent's rounded edge, which some
- * renderers do unreliably for an inset `box-shadow`; a corner tile relying
- * on that clip alone would show a square nub poking past the curve, and an
- * interior tile rounded unconditionally would read as a floating rounded
- * card instead of a flush grid cell. `PATTERN_CORNER_CLASS` needs no
- * responsive variant the way `THEME_CORNER_CLASS` does — a fixed 4-column,
- * single-row grid has no breakpoint where the corner-to-index mapping
- * changes, and its end tiles round both corners on their side rather than
- * just one, there being only the one row.
- * Layout rows round only `first:rounded-t-md last:rounded-b-md` for the same
- * reason, simplified because a `divide-y` stack only ever has two outer
- * corners. Each tile/row carries a faded `bg-app-hover` fill so the group
- * reads as one solid control block; hover swaps that fill to
- * `bg-app-selected` and the active member gets `bg-app-accent-faint` plus
- * the inset ring. Call Timeout is a plain labelled field — a single control,
- * not a group — filling the Network section on its own.
+ * `'none'`, since there is nothing for it to scale. Pattern tiles are an
+ * {@link OptionGrid} (`src/components/ui/option-grid.tsx`) forced to four
+ * columns, each card owning its own chrome — the active one gets an accent
+ * border, soft accent ring and the corner `Check` badge. Theme cards
+ * ({@link PALETTE_CARD}) follow the same standalone-card shape but carry no
+ * fill of their own, since each is painted in the palette it selects. Layout rows are the one remaining segmented group — a `divide-y`
+ * stack rounding only `first:rounded-t-md last:rounded-b-md` — since a
+ * vertical list of full-width rows reads better flush than gapped. Call
+ * Timeout is a plain labelled field — a single control, not a group —
+ * filling the Network section on its own.
  *
  * Composition: renders no children. Two-pane body — a fixed-width `<nav>` rail
  * (`w-40`, its own `border-r`) beside a `flex-1` scrollable content pane that
@@ -414,38 +388,68 @@ export default function TweaksPanel({}: TweaksPanelProps) {
             {section === "theme" && (
               <div>
                 <div className={`${ui.label} mb-2`}>Color Theme</div>
-                <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-app-border bg-app-border sm:grid-cols-5">
-                  {THEME_OPTIONS.map(({ id, label }, index) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => dispatch(setTheme(id))}
-                      aria-pressed={theme === id}
-                      data-active={theme === id || undefined}
-                      data-testid={`tweaks-panel-theme-button-${id}`}
-                      className={`${SWATCH_BTN} ${THEME_CORNER_CLASS[index] ?? ""}`}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {THEME_PAIRS.map(({ label, dark, light }) => (
+                    <div
+                      key={label}
+                      className="flex flex-col gap-2 rounded-xl border border-app-border p-2"
                     >
-                      <span className="relative block h-9 w-full shrink-0 overflow-hidden rounded-sm border border-black/15">
-                        <span
-                          aria-hidden="true"
-                          data-testid={`tweaks-panel-theme-swatch-${id}`}
-                          className="absolute inset-0"
-                          style={{
-                            background: `linear-gradient(135deg, ${THEMES[id].cyan}, color-mix(in srgb, ${THEMES[id].cyan} 55%, black))`,
-                          }}
-                        />
-                        {theme === id && (
-                          <Check
-                            size={13}
-                            aria-hidden="true"
-                            className="absolute right-0.5 top-0.5 rounded-full bg-black/40 p-0.5 text-white"
-                          />
-                        )}
-                      </span>
-                      <span className="font-title text-[10px] font-semibold uppercase tracking-[0.06em] text-app-dim group-data-active:text-app-accent">
+                      <span className="px-1 font-title text-[10px] font-semibold uppercase tracking-[0.06em] text-app-dim">
                         {label}
                       </span>
-                    </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { variant: "Dark", id: dark },
+                          { variant: "Light", id: light },
+                        ].flatMap(({ variant, id }) =>
+                          !id
+                            ? []
+                            : [
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => dispatch(setTheme(id))}
+                                  aria-pressed={theme === id}
+                                  aria-label={`${label} ${variant}`}
+                                  data-active={theme === id || undefined}
+                                  data-testid={`tweaks-panel-theme-button-${id}`}
+                                  style={
+                                    themeVars(THEMES[id]) as React.CSSProperties
+                                  }
+                                  className={PALETTE_CARD}
+                                >
+                                  {theme === id && (
+                                    <span
+                                      aria-hidden="true"
+                                      className="absolute right-2 top-2 flex size-4 items-center justify-center rounded-full border border-app-border bg-app-accent text-app-on-solid"
+                                    >
+                                      <Check
+                                        className="size-2.5"
+                                        strokeWidth={3}
+                                      />
+                                    </span>
+                                  )}
+                                  <span
+                                    aria-hidden="true"
+                                    data-testid={`tweaks-panel-theme-swatch-${id}`}
+                                    className="flex gap-1"
+                                  >
+                                    {SWATCH_TONES.map((tone) => (
+                                      <span
+                                        key={tone}
+                                        className="size-4 rounded-sm border border-app-border"
+                                        style={{ background: THEMES[id][tone] }}
+                                      />
+                                    ))}
+                                  </span>
+                                  <span className="truncate font-title text-[11px] font-semibold text-app-bright">
+                                    {variant}
+                                  </span>
+                                </button>,
+                              ],
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -494,39 +498,26 @@ export default function TweaksPanel({}: TweaksPanelProps) {
             {section === "background" && (
               <div>
                 <div className={`${ui.label} mb-2`}>Background Pattern</div>
-                <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-app-border bg-app-border">
-                  {PATTERN_OPTIONS.map(({ id, label }, index) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => dispatch(setPatternStyle(id))}
-                      aria-pressed={patternStyle === id}
-                      data-active={patternStyle === id || undefined}
-                      data-testid={`tweaks-panel-pattern-button-${id}`}
-                      className={`${SWATCH_BTN} ${PATTERN_CORNER_CLASS[index] ?? ""}`}
-                    >
+                <OptionGrid
+                  className="grid-cols-4 sm:grid-cols-4"
+                  data-testid="tweaks-panel-pattern-button"
+                  value={patternStyle}
+                  onValueChange={(v) => dispatch(setPatternStyle(v as PatternStyle))}
+                  options={PATTERN_OPTIONS.map(({ id, label }) => ({
+                    value: id,
+                    label,
+                    swatch: (
                       <span
                         aria-hidden="true"
                         data-testid={`tweaks-panel-pattern-swatch-${id}`}
-                        className={`relative block h-9 w-full shrink-0 overflow-hidden rounded-sm border border-app-border bg-app-sidebar ${
+                        className={`relative block h-11 w-full shrink-0 overflow-hidden rounded-md border border-app-border bg-app-sidebar ${
                           id === "none" ? "" : `app-panel-texture--${id}`
                         }`}
                         style={id === "none" ? undefined : PATTERN_SWATCH_STYLE}
-                      >
-                        {patternStyle === id && (
-                          <Check
-                            size={13}
-                            aria-hidden="true"
-                            className="absolute right-0.5 top-0.5 rounded-full bg-black/40 p-0.5 text-white"
-                          />
-                        )}
-                      </span>
-                      <span className="font-title text-[10px] font-semibold uppercase tracking-[0.06em] text-app-dim group-data-active:text-app-accent">
-                        {label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                      />
+                    ),
+                  }))}
+                />
                 {patternStyle !== "none" && (
                   <div className="mt-3 flex items-center gap-2.5">
                     <label

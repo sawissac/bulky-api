@@ -175,14 +175,14 @@ function CopyToken({
       activeIndex={activeIndex - matchOffset}
       activeClassName="json-tree-viewer__mark--active"
       highlightStyle={{
-        background: `${T.cyan}38`,
+        background: `${T.accent}38`,
         color: T.textBright,
         borderRadius: 2,
       }}
       activeStyle={{
-        background: `${T.cyan}80`,
+        background: `${T.accent}80`,
         color: T.textBright,
-        outline: `1px solid ${T.cyan}`,
+        outline: `1px solid ${T.accent}`,
         borderRadius: 2,
       }}
       unhighlightStyle={{ color: "inherit" }}
@@ -208,7 +208,7 @@ function CopyToken({
           }}
           style={{
             color: copied ? T.success : color,
-            background: copied ? T.cyanFaint : "transparent",
+            background: copied ? T.accentFaint : "transparent",
             borderRadius: 3,
             cursor: "pointer",
             overflowWrap: "anywhere",
@@ -397,7 +397,7 @@ function JNodeInner({
             }}
             style={{
               marginLeft: 6,
-              color: T.cyan,
+              color: T.accent,
               fontSize: 9,
               letterSpacing: "0.05em",
               textTransform: "uppercase",
@@ -427,7 +427,7 @@ function JNodeInner({
   return (
     <span>
       <span
-        style={{ color: T.cyan, cursor: "pointer", userSelect: "none" }}
+        style={{ color: T.accent, cursor: "pointer", userSelect: "none" }}
         data-testid={`json-tree-viewer-toggle-${path}`}
         onClick={() => setOpen(!open)}
       >
@@ -480,7 +480,7 @@ function JNodeInner({
               </div>
             ),
           )}
-          <span style={{ color: T.cyan }}>{isArr ? "]" : "}"}</span>
+          <span style={{ color: T.accent }}>{isArr ? "]" : "}"}</span>
         </>
       )}
     </span>

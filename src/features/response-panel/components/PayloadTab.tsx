@@ -147,7 +147,7 @@ export default function PayloadTab({ T, call }: Props) {
                     style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: 11,
-                      color: T.cyan,
+                      color: T.accent,
                       flexShrink: 0,
                     }}
                   >

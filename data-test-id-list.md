@@ -45,7 +45,7 @@
 `tweaks-panel-layout-button-<layout-id>` — TweaksPanel / layout pill (per layout: balanced, editor-focus, response-focus)
 `tweaks-panel-pattern-button-<pattern-id>` — TweaksPanel / background pattern pill (per pattern: none, checker, dots, graph)
 `tweaks-panel-pattern-swatch-<pattern-id>` — TweaksPanel / background pattern swatch preview
-`tweaks-panel-pattern-opacity-input` — TweaksPanel / pattern intensity range input (hidden while pattern is "none")
+`tweaks-panel-pattern-opacity-input` — TweaksPanel / pattern intensity Slider root (thumb: `tweaks-panel-pattern-opacity-input-thumb`; hidden while pattern is "none")
 `tweaks-panel-timeout-input` — TweaksPanel / call timeout number input (via shared `Input`)
 `tweaks-panel-timeout-input-clear-button` — TweaksPanel / call timeout inline clear button (renamed from `tweaks-panel-timeout-clear-button` when the standalone Clear link was replaced by `Input`'s built-in clear button)
 `tweaks-panel-done-button` — TweaksPanel / footer done button

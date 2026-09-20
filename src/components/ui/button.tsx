@@ -1,24 +1,32 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { Slot } from "radix-ui"
+import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/cn";
 
+/**
+ * Flat button geometry. No elevation: the rest state is a transparent 1px
+ * border — always present, so hover and focus never shift layout — feedback
+ * comes from fill and border color, and the only motion is a 1px settle on
+ * press. `aria-expanded` holds the hover fill while a menu the button opens is
+ * showing; popup triggers opt out of the press nudge so the panel they anchor
+ * doesn't jump.
+ */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-app-accent focus-visible:ring-3 focus-visible:ring-app-accent/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-app-error aria-invalid:ring-3 aria-invalid:ring-app-error/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        default: "bg-app-accent text-app-on-solid hover:bg-app-accent/80",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-transparent dark:hover:bg-input/30",
+          "border-app-border bg-app-bg hover:bg-app-hover hover:text-app-bright aria-expanded:bg-app-hover aria-expanded:text-app-bright",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-app-sidebar text-app-bright hover:bg-app-sidebar/80 aria-expanded:bg-app-sidebar aria-expanded:text-app-bright",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-app-hover hover:text-app-bright aria-expanded:bg-app-hover aria-expanded:text-app-bright",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-app-error/10 text-app-error hover:bg-app-error/20 focus-visible:border-app-error/40 focus-visible:ring-app-error/20",
+        link: "text-app-accent underline-offset-4 hover:underline",
       },
       size: {
         default:
@@ -36,9 +44,42 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
-)
+  },
+);
 
+/**
+ * The button primitive.
+ *
+ * Server-safe: no `"use client"` directive, so a Server Component can render a
+ * link-style or form-submit button without opening a client boundary. Anything
+ * with an `onClick` naturally lives in a client component anyway.
+ *
+ * Carries `data-variant` and `data-size` alongside `data-slot="button"`, so a
+ * container can style or select its buttons by role — {@link ButtonGroup} and
+ * `DialogFooter` both lean on that.
+ *
+ * @param props.variant - Visual role. `default` is the solid accent action,
+ *   `outline` the bordered secondary, `ghost` the chrome-less one for toolbars,
+ *   `secondary` a filled neutral, `destructive` a tinted danger action (not a
+ *   solid red block), `link` inline text.
+ * @param props.size - Geometry. `default`/`sm`/`lg`/`xs` are label buttons;
+ *   the `icon*` sizes are square hit areas for a lone glyph — pair them with an
+ *   `aria-label`, since there is no text to name the control.
+ * @param props.asChild - Render the caller's child element instead of a
+ *   `<button>`, keeping these styles (for links, menu triggers, ...).
+ * @param props.className - Extra classes merged onto the button.
+ *
+ * @example
+ * ```tsx
+ * <Button onClick={save}>Save</Button>
+ * <Button variant="outline" size="icon-sm" aria-label="Refresh">
+ *   <RotateCw size={14} />
+ * </Button>
+ * <Button asChild variant="link">
+ *   <a href="/docs">Read the docs</a>
+ * </Button>
+ * ```
+ */
 function Button({
   className,
   variant = "default",
@@ -47,9 +88,9 @@ function Button({
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
+    asChild?: boolean;
   }) {
-  const Comp = asChild ? Slot.Root : "button"
+  const Comp = asChild ? Slot.Root : "button";
 
   return (
     <Comp
@@ -59,7 +100,7 @@ function Button({
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
-  )
+  );
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants };

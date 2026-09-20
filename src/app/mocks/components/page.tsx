@@ -15,7 +15,7 @@ import KVRow from '@/components/KVRow';
 import JNode from '@/components/JsonTreeViewer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { ResizableHandle, ResizablePanel, ResizableGroup } from '@/components/ui/resizable';
 
 import ApiDocs from '@/features/response-panel/components/ApiDocs';
 import ApiWaterfall from '@/features/response-panel/components/ApiWaterfall';
@@ -146,9 +146,9 @@ const ENTRIES: Entry[] = [
   },
   {
     id: 'resizable',
-    name: 'ResizablePanelGroup / ResizablePanel / ResizableHandle',
+    name: 'ResizableGroup / ResizablePanel / ResizableHandle',
     path: 'src/components/ui/resizable.tsx',
-    props: 'GroupProps / PanelProps / SeparatorProps & { withHandle?: boolean }',
+    props: 'GroupProps / PanelProps / SeparatorProps',
     group: 'shadcn primitives',
     mount: 'live',
     note: 'react-resizable-panels wrappers; the app layout splits sidebar / editor / response with these.',
@@ -701,19 +701,19 @@ export default function MocksComponentsPage() {
 
           <Section entry={ENTRIES[6]}>
             <div className="h-32 overflow-hidden rounded-md border border-app-border">
-              <ResizablePanelGroup orientation="horizontal">
+              <ResizableGroup orientation="horizontal">
                 <ResizablePanel defaultSize={35}>
                   <div className="flex h-full items-center justify-center text-[12px] text-app-dim">
                     left
                   </div>
                 </ResizablePanel>
-                <ResizableHandle withHandle />
+                <ResizableHandle />
                 <ResizablePanel>
                   <div className="flex h-full items-center justify-center text-[12px] text-app-dim">
                     right
                   </div>
                 </ResizablePanel>
-              </ResizablePanelGroup>
+              </ResizableGroup>
             </div>
           </Section>
 

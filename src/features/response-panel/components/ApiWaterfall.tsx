@@ -1,10 +1,12 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useSelector } from 'react-redux';
 import type { Theme } from '@/lib/themes';
 import { statusColor, methodColor } from '@/lib/themes';
 import { selectBuiltCalls, selectRunStartedAt } from '@/store/runnerSlice';
 import { displayUrl } from '@/lib/callMatch';
+import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Props = {
@@ -25,13 +27,19 @@ type Props = {
  * the left edge; a call replayed from cache carries a stamp older than the run
  * and clamps to 0 instead of moving that origin. Bar width is a percentage of
  * the run's total span, floored at 1% so a sub-millisecond call stays visible;
- * a pending call instead stretches to the right edge and pulses.
+ * a pending call instead stretches to the right edge and runs the
+ * indeterminate sweep.
  *
  * Variants: an idle (analyzed, not yet run) call draws in the border color at
  * 0.2 opacity; a completed or pending one in the theme accent; a failed one in
  * the error color. The status-code chip keeps the green/amber/red outcome color.
+ * Each bar is a `size="sm"` {@link Progress} (`src/components/ui/progress.tsx`)
+ * absolutely positioned inside the row's track by `left`/`width` — `100`
+ * (solid run + trailing pip) once the call has a span, `null` (indeterminate
+ * sweep) while pending — recoloured by overriding `--app-accent` inline.
  *
- * Composition: each row is a `Tooltip` trigger showing the full method, URL,
+ * Composition: each row is a `Tooltip` trigger — wrapping a {@link Progress}
+ * bar — showing the full method, URL,
  * status and duration — the row itself truncates the URL to its last 36
  * characters. A total row follows the chart once any call has a duration.
  *
@@ -40,8 +48,9 @@ type Props = {
  *
  * Test ids: none.
  *
- * CSS classes: the chart itself is inline styles over the theme object, plus
- * the shared `pulse` keyframes for pending bars; the empty state is the shared
+ * CSS classes: the chart itself is inline styles over the theme object; the
+ * pending sweep is {@link Progress}'s own `compacto-progress-sweep` keyframe.
+ * The empty state is the shared
  * `p-4 text-center font-description text-[12px] text-app-dim` recipe used by the
  * call list and docs view. The bordered card is filled with `bgPanel` — the
  * same opaque backing the request-list card uses — so the pane's dot-grid
@@ -54,7 +63,7 @@ type Props = {
  * which puts every bar at 0.
  *
  * Dependencies: `react-redux`, `@/store/runnerSlice`, `@/lib/themes`,
- * `@/components/ui/tooltip`.
+ * `@/components/ui/tooltip`, `@/components/ui/progress` ({@link Progress}).
  *
  * @example
  * ```tsx
@@ -168,18 +177,17 @@ export default function ApiWaterfall({ T }: Props) {
 
                   {/* Waterfall bar */}
                   <div style={{ position: 'relative', height: 14, background: T.bg, borderRadius: 3, overflow: 'hidden' }}>
-                    <div
+                    <Progress
+                      size="sm"
+                      aria-label={`${call.method} ${urlDisplay} timing`}
+                      className="absolute inset-y-0 justify-center transition-[left,width] duration-(--motion-duration-fast)"
                       style={{
-                        position: 'absolute',
                         left: `${barLeft}%`,
                         width: `${barWidth}%`,
-                        height: '100%',
-                        background: barColor,
-                        borderRadius: 3,
                         opacity: call.status === 'idle' ? 0.2 : 0.75,
-                        animation: isPending ? 'pulse 0.8s ease-in-out infinite' : undefined,
-                        transition: 'width 0.2s, background 0.3s',
-                      }}
+                        '--app-accent': barColor,
+                      } as CSSProperties}
+                      value={isPending ? null : 100}
                     />
                   </div>
 

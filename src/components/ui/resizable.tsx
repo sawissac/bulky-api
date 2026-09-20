@@ -1,50 +1,87 @@
-"use client"
+"use client";
 
-import * as ResizablePrimitive from "react-resizable-panels"
+import * as React from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/cn";
 
-function ResizablePanelGroup({
+/**
+ * Container for a row or column of resizable panels.
+ *
+ * Wraps `react-resizable-panels`' `Group`; `react-resizable-panels` is an
+ * optional peer dependency, so installing it is only required if you import
+ * this module.
+ *
+ * **Two things this component cannot forward**, both because the underlying
+ * library claims them for its own layout persistence:
+ *
+ * - `data-testid` and `id` are overwritten with generated values. Target the
+ *   group with `[data-slot="resizable-group"]`, or put your test id on a
+ *   wrapper element. The same applies to `ResizablePanel`.
+ * - `ref` yields the library's imperative panel-group handle, not the DOM
+ *   node.
+ *
+ * `className` does pass through normally.
+ *
+ * @param props.orientation - `"horizontal"` lays panels side by side,
+ *   `"vertical"` stacks them.
+ * @param props.className - Extra classes merged onto the group.
+ *
+ * @example
+ * ```tsx
+ * <ResizableGroup orientation="horizontal">
+ *   <ResizablePanel defaultSize="30%" minSize="180px">…</ResizablePanel>
+ *   <ResizableHandle />
+ *   <ResizablePanel>…</ResizablePanel>
+ * </ResizableGroup>
+ * ```
+ */
+function ResizableGroup({
   className,
   ...props
-}: ResizablePrimitive.GroupProps) {
+}: React.ComponentProps<typeof Group>) {
   return (
-    <ResizablePrimitive.Group
-      data-slot="resizable-panel-group"
+    <Group
+      data-slot="resizable-group"
       className={cn(
-        "flex h-full w-full aria-[orientation=vertical]:flex-col",
-        className
+        "flex h-full w-full data-[orientation=vertical]:flex-col",
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
-function ResizablePanel({ ...props }: ResizablePrimitive.PanelProps) {
-  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />
-}
+/** One resizable region. Re-exported from `react-resizable-panels` unchanged. */
+const ResizablePanel = Panel;
 
+/**
+ * The draggable rule between two panels.
+ *
+ * Renders as a 1px line but claims a 12px invisible hit area through an
+ * `::after` overlay — a literal 1px drag target is unusable with a mouse and
+ * impossible with a trackpad. Highlights to the accent on hover, drag and
+ * keyboard focus.
+ *
+ * @param props.className - Extra classes merged onto the handle.
+ */
 function ResizableHandle({
-  withHandle,
   className,
   ...props
-}: ResizablePrimitive.SeparatorProps & {
-  withHandle?: boolean
-}) {
+}: React.ComponentProps<typeof Separator>) {
   return (
-    <ResizablePrimitive.Separator
+    <Separator
       data-slot="resizable-handle"
       className={cn(
-        "relative flex w-px items-center justify-center bg-border ring-offset-background after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden aria-[orientation=horizontal]:h-px aria-[orientation=horizontal]:w-full aria-[orientation=horizontal]:after:left-0 aria-[orientation=horizontal]:after:h-1 aria-[orientation=horizontal]:after:w-full aria-[orientation=horizontal]:after:translate-x-0 aria-[orientation=horizontal]:after:-translate-y-1/2 [&[aria-orientation=horizontal]>div]:rotate-90",
-        className
+        "relative flex w-px shrink-0 items-center justify-center bg-app-border outline-none",
+        "transition-colors duration-(--motion-duration-fast)",
+        "hover:bg-app-accent/60 focus-visible:bg-app-accent data-[active]:bg-app-accent",
+        "after:absolute after:inset-y-0 after:left-1/2 after:w-3 after:-translate-x-1/2",
+        className,
       )}
       {...props}
-    >
-      {withHandle && (
-        <div className="z-10 flex h-6 w-1 shrink-0 rounded-lg bg-border" />
-      )}
-    </ResizablePrimitive.Separator>
-  )
+    />
+  );
 }
 
-export { ResizableHandle, ResizablePanel, ResizablePanelGroup }
+export { ResizableGroup, ResizableHandle, ResizablePanel };

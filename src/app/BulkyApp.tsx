@@ -38,7 +38,7 @@ import CodeEditor from "@/features/code-editor/components/CodeEditor";
 import ResponsePanel from "@/features/response-panel/components/ResponsePanel";
 import TweaksPanel from "@/features/tweaks/components/TweaksPanel";
 import {
-  ResizablePanelGroup,
+  ResizableGroup,
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
@@ -96,7 +96,7 @@ const PANE = "h-full w-full overflow-hidden rounded-xl border border-app-border"
  * Variants: pane sizes follow the `layout` setting — `balanced`,
  * `editor-focus`, `response-focus` all arrange sidebar/editor/response in one
  * horizontal row, differing only in width split. `stacked` instead nests a
- * second, vertical {@link ResizablePanelGroup} inside the row's right-hand
+ * second, vertical {@link ResizableGroup} inside the row's right-hand
  * panel, so the editor sits above the response panel rather than beside it;
  * the sidebar panel is unchanged. Changing `layout` remounts the outer panel
  * group by key, which is what resets panes a user has dragged.
@@ -309,7 +309,7 @@ export default function BulkyApp() {
       <ActivityRail />
 
       <main className="min-h-0 min-w-0 flex-1 overflow-hidden p-2">
-        <ResizablePanelGroup
+        <ResizableGroup
           key={layout}
           orientation="horizontal"
           className="h-full"
@@ -319,13 +319,13 @@ export default function BulkyApp() {
               <Sidebar T={T} />
             </div>
           </ResizablePanel>
-          <ResizableHandle withHandle className={HANDLE} />
+          <ResizableHandle className={HANDLE} />
           {layout === "stacked" ? (
             <ResizablePanel
               defaultSize={`${100 - parseInt(L.side, 10)}%`}
               minSize="30%"
             >
-              <ResizablePanelGroup orientation="vertical" className="h-full">
+              <ResizableGroup orientation="vertical" className="h-full">
                 <ResizablePanel defaultSize={L.editor} minSize="20%">
                   <div className={PANE}>
                     <CodeEditor
@@ -340,7 +340,7 @@ export default function BulkyApp() {
                     />
                   </div>
                 </ResizablePanel>
-                <ResizableHandle withHandle className={HANDLE} />
+                <ResizableHandle className={HANDLE} />
                 <ResizablePanel defaultSize={L.resp} minSize="15%">
                   <div className={PANE}>
                     <ResponsePanel
@@ -351,7 +351,7 @@ export default function BulkyApp() {
                     />
                   </div>
                 </ResizablePanel>
-              </ResizablePanelGroup>
+              </ResizableGroup>
             </ResizablePanel>
           ) : (
             <>
@@ -369,7 +369,7 @@ export default function BulkyApp() {
                   />
                 </div>
               </ResizablePanel>
-              <ResizableHandle withHandle className={HANDLE} />
+              <ResizableHandle className={HANDLE} />
               <ResizablePanel defaultSize={L.resp} minSize="15%" maxSize="70%">
                 <div className={PANE}>
                   <ResponsePanel
@@ -382,7 +382,7 @@ export default function BulkyApp() {
               </ResizablePanel>
             </>
           )}
-        </ResizablePanelGroup>
+        </ResizableGroup>
       </main>
 
       {tweaksOpen && <TweaksPanel T={T} />}

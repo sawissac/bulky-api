@@ -54,8 +54,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import NewCollectionDialog from "./NewCollectionDialog";
 import ImportCollectionDialog from "./ImportCollectionDialog";
 import CollectionHooksDialog from "./CollectionHooksDialog";
@@ -306,7 +306,7 @@ type MenuAction = {
   label: string;
   icon: React.ReactNode;
   onSelect: () => void;
-  tone?: "danger";
+  variant?: "destructive";
   disabled?: boolean;
 };
 
@@ -358,11 +358,11 @@ function RowMenu({ id, label, actions }: { id: string; label: string; actions: M
       >
         {actions.map((a) =>
           a.key === "sep" ? (
-            <DropdownMenuSeparator key={`sep-${id}`} />
+            <Separator key={`sep-${id}`} className="my-1" />
           ) : (
             <DropdownMenuItem
               key={a.key}
-              tone={a.tone}
+              variant={a.variant}
               disabled={a.disabled}
               onSelect={() => {
                 actionTakenRef.current = true;
@@ -623,7 +623,7 @@ function FolderRow({
                 key: "delete",
                 label: "Delete folder",
                 icon: <Trash2 aria-hidden="true" />,
-                tone: "danger",
+                variant: "destructive",
                 onSelect: () => {
                   const doomed = descendantFolderIds(folders, folder.id);
                   setPendingDelete({
@@ -773,7 +773,7 @@ function ItemRow({
               key: "delete",
               label: "Delete request",
               icon: <Trash2 aria-hidden="true" />,
-              tone: "danger",
+              variant: "destructive",
               onSelect: () =>
                 setPendingDelete({ kind: "item", collectionId: col.id, itemId: item.id, name: item.name }),
             },
@@ -962,7 +962,7 @@ function CollectionRow({
                 key: "delete",
                 label: "Delete collection",
                 icon: <Trash2 aria-hidden="true" />,
-                tone: "danger",
+                variant: "destructive",
                 onSelect: () => setPendingDelete({ kind: "coll", id: col.id, name: col.name }),
               },
             ]}

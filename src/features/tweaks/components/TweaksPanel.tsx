@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { OptionGrid } from "@/components/ui/option-grid";
+import { Slider } from "@/components/ui/slider";
 import { THEMES, themeVars, type Theme, type ThemeKey } from "@/lib/themes";
 import type { LayoutKey, PatternStyle } from "@/store/uiSlice";
 import {
@@ -189,7 +190,7 @@ const NAV_BTN =
  * field is kept separate from the store so typing does not stutter waiting on
  * the 400ms debounce before `setCallTimeout` dispatches. Theme, layout and background-
  * pattern-style pills dispatch on click with no debounce; the pattern
- * intensity slider dispatches `setPatternOpacity` on every `input` event —
+ * intensity slider dispatches `setPatternOpacity` on every `onValueChange` —
  * cheap enough (one CSS custom property write) that it needs no debounce
  * either, unlike the timeout field's every-keystroke risk of a malformed
  * number mid-type. Escape and a click on the scrim close the dialog by
@@ -223,8 +224,9 @@ const NAV_BTN =
  * swatch instead) pinned to
  * `PATTERN_SWATCH_STYLE`'s `--app-pattern-alpha: 1` so the four choices stay
  * visually distinct even when the live setting is dialed faint; the
- * Intensity slider beneath it — a plain `<input type="range">`,
- * `accent-app-accent` for its native thumb/track color — drives that live
+ * Intensity slider beneath it — a `size="sm"` {@link Slider}
+ * (`src/components/ui/slider.tsx`) with its built-in label/readout header row,
+ * `formatValue` rendering the raw `<n>%` — drives that live
  * setting (`patternOpacity`) and is hidden outright while `patternStyle` is
  * `'none'`, since there is nothing for it to scale. Pattern tiles are an
  * {@link OptionGrid} (`src/components/ui/option-grid.tsx`) forced to four
@@ -249,9 +251,8 @@ const NAV_BTN =
  * carrying `aria-current="page"` on the active section. Pills carry
  * `aria-pressed` for their selected state. The timeout field is labelled by
  * the visible "Call Timeout" heading via `aria-labelledby`; the intensity
- * slider by a plain `<label htmlFor>` rather than `aria-labelledby`, since
- * "Intensity" belongs to it alone and isn't shared with a wider section like
- * "Call Timeout" is with its own field.
+ * slider's thumb is named by the Slider's own `label` ("Intensity") through
+ * the `aria-labelledby` the component wires internally.
  *
  * Test ids: root `tweaks-panel-root`, close `tweaks-panel-close-button`, nav
  * entries `tweaks-panel-nav-<section>` (`theme`/`layout`/`background`/`network`),
@@ -260,7 +261,8 @@ const NAV_BTN =
  * `tweaks-panel-layout-button-<layout-id>`, pattern pills
  * `tweaks-panel-pattern-button-<pattern-id>`, pattern swatches
  * `tweaks-panel-pattern-swatch-<pattern-id>`, intensity slider
- * `tweaks-panel-pattern-opacity-input`, timeout input
+ * `tweaks-panel-pattern-opacity-input` (thumb
+ * `tweaks-panel-pattern-opacity-input-thumb`), timeout input
  * `tweaks-panel-timeout-input`, timeout clear
  * `tweaks-panel-timeout-input-clear-button`, footer `tweaks-panel-done-button`.
  *
@@ -280,7 +282,8 @@ const NAV_BTN =
  *   later resumes at whatever intensity was last set instead of a reset default.
  *
  * Dependencies: `lucide-react`, `react-redux`, shared recipes from `@/lib/ui`,
- * `@/components/ui/input` ({@link Input}).
+ * `@/components/ui/input` ({@link Input}), `@/components/ui/option-grid`
+ * ({@link OptionGrid}), `@/components/ui/slider` ({@link Slider}).
  *
  * @example
  * ```tsx
@@ -519,30 +522,18 @@ export default function TweaksPanel({}: TweaksPanelProps) {
                   }))}
                 />
                 {patternStyle !== "none" && (
-                  <div className="mt-3 flex items-center gap-2.5">
-                    <label
-                      htmlFor="tweaks-panel-pattern-opacity-input"
-                      className="font-description text-[11px] text-app-dim"
-                    >
-                      Intensity
-                    </label>
-                    <input
-                      id="tweaks-panel-pattern-opacity-input"
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={patternOpacity}
-                      onChange={(e) =>
-                        dispatch(setPatternOpacity(Number(e.target.value)))
-                      }
-                      data-testid="tweaks-panel-pattern-opacity-input"
-                      className="h-1.5 flex-1 accent-app-accent"
-                    />
-                    <span className={`${ui.meta} w-8 text-right`}>
-                      {patternOpacity}%
-                    </span>
-                  </div>
+                  <Slider
+                    className="mt-3"
+                    size="sm"
+                    label="Intensity"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={patternOpacity}
+                    onValueChange={(v) => dispatch(setPatternOpacity(v))}
+                    formatValue={(v) => `${v}%`}
+                    data-testid="tweaks-panel-pattern-opacity-input"
+                  />
                 )}
               </div>
             )}

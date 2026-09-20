@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useDispatch } from "react-redux";
 import {
   ChevronDown,
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { Progress } from "@/components/ui/progress";
 import RespTab from "./RespTab";
 import TableTab from "./TableTab";
 import HeadTab from "./HeadTab";
@@ -145,14 +146,17 @@ function AssertionRows({ T, items }: { T: Theme; items: Assertion[] }) {
  * open (`open` state ignored), its body loses the 500px cap and grows into
  * the leftover space, and the chevron is dropped since collapsing is no
  * longer reachable. idle / pending / success / error drive the left border, progress
- * bar and trailing status glyph. A `cache`-flagged call with a stored response
+ * bar and trailing status glyph — the bar is a `size="sm"` {@link Progress}
+ * (`src/components/ui/progress.tsx`): `0` while idle, indeterminate sweep
+ * (`value={null}`) while pending, `100` once settled, recoloured to the
+ * call's status colour by overriding `--app-accent` inline on its root. A `cache`-flagged call with a stored response
  * shows the cache pill; a call carrying `assertions` shows a pass/fail badge in
  * the header and an extra **Tests** tab. A `PGSQL` call gets an extra
  * **Table** tab too, first in the row (ahead of Response) — the query's
  * `rows` as an actual grid rather than the nested object the Response tab's
  * JSON tree shows.
  *
- * Composition: {@link MethodPill}, {@link StatusPill}, and the five-to-seven
+ * Composition: {@link MethodPill}, {@link StatusPill}, {@link Progress}, and the five-to-seven
  * tab bodies ({@link TableTab} — `PGSQL` calls only, {@link RespTab},
  * {@link HeadTab}, {@link AuthTab}, {@link PayloadTab}, {@link StatusTab},
  * plus an inline Tests list).
@@ -181,7 +185,8 @@ function AssertionRows({ T, items }: { T: Theme; items: Assertion[] }) {
  *   rather than a detail panel — there is nothing recorded to fill it.
  *
  * Dependencies: `lucide-react`, `react-redux`, `@/lib/toCurl`,
- * `@/lib/callMatch`, `@/store/runnerSlice`.
+ * `@/lib/callMatch`, `@/store/runnerSlice`, `@/components/ui/progress`
+ * ({@link Progress}).
  *
  * @example
  * ```tsx
@@ -391,31 +396,15 @@ export default function CallCard({
         </Tooltip>
 
         {/* Progress bar */}
-        <div
-          style={{
-            width: 36,
-            height: 2,
-            borderRadius: 9999,
-            background: T.border,
-            flexShrink: 0,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              borderRadius: 9999,
-              background: sc,
-              width:
-                call.status === "idle"
-                  ? "0%"
-                  : call.status === "pending"
-                    ? "55%"
-                    : "100%",
-              transition: "width 0.4s ease",
-            }}
-          />
-        </div>
+        <Progress
+          size="sm"
+          aria-label="Call progress"
+          className="w-9 shrink-0"
+          style={{ "--app-accent": sc } as CSSProperties}
+          value={
+            call.status === "idle" ? 0 : call.status === "pending" ? null : 100
+          }
+        />
 
         {call.duration > 0 && (
           <span

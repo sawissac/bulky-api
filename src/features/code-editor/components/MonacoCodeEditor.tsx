@@ -271,6 +271,12 @@ interface BulkyApi extends BulkyHttp, BulkyStream, BulkySocket {
   /** Records a pass/fail check against the run. Never throws — a falsy
    *  \`condition\` is collected and shown on the call card and run summary. */
   assert(condition: unknown, message?: string): void;
+  /** Resolves after \`ms\` milliseconds — pause between calls when polling a
+   *  job or pacing a rate-limited host. Shows as a divider line between the
+   *  call cards, with a live countdown, and as a dashed bar in the waterfall; the
+   *  global \`sleep\` pauses the same way without one. Rejects at once if the
+   *  run is stopped. */
+  wait(ms: number): Promise<void>;
   /** Opens a native file picker and resolves with the chosen file. \`accept\`
    *  is a standard file-input accept string, e.g. \`'image/*'\`. Rejects if the
    *  picker is dismissed with nothing chosen. */

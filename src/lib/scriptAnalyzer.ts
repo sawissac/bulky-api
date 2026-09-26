@@ -1,4 +1,5 @@
 import type { ApiCall } from './types';
+import { waitKeyFromSource } from './wait';
 
 function extractNoteBeforeIndex(code: string, idx: number): string | undefined {
   const before = code.slice(0, idx);
@@ -93,7 +94,7 @@ export function analyzeScript(code: string, envVars: Record<string, string> = {}
   // `await` is optional: a call inside `api.parallel([...])` — or handed to
   // `Promise.all` — fires without one. The lookbehind keeps `myapi.get(`
   // from matching now that `await ` no longer anchors the start.
-  const re = /(?<![\w$.])(?:await\s+)?api\.(?:(server|query)\.)?(get|post|put|patch|delete|options|head|sse|stream|ws|io|pgsql)\s*(?:<[^>()]*>)?\s*\(/gi;
+  const re = /(?<![\w$.])(?:await\s+)?api\.(?:(server|query)\.)?(get|post|put|patch|delete|options|head|sse|stream|ws|io|pgsql|wait)\s*(?:<[^>()]*>)?\s*\(/gi;
   let m: RegExpExecArray | null;
 
   while ((m = re.exec(code)) !== null) {
@@ -108,6 +109,12 @@ export function analyzeScript(code: string, envVars: Record<string, string> = {}
     const ns = m[1]?.toLowerCase();
     const isSql = m[2].toLowerCase() === "pgsql";
     if (isSql !== (ns === "query")) continue;
+    // `api.wait` is a pause, not a request — it has no `server` twin. It is
+    // still a stub here because the run records it as a step of its own (see
+    // `makeWait` in `scriptRunner.ts`), and `mergeCalls` needs the count and
+    // order of stubs to match what ran.
+    const isWaitCall = m[2].toLowerCase() === "wait";
+    if (isWaitCall && ns) continue;
 
     // `api.sse` never sends a body, so its call record's `method` is always
     // "SSE" (see `makeStreamCall` in `scriptRunner.ts`). `api.stream` sends
@@ -158,7 +165,9 @@ export function analyzeScript(code: string, envVars: Record<string, string> = {}
     url = url.replace(/\$\{([A-Za-z_$][\w$]*)\}/g, (whole, k) => consts[k] ?? whole);
     if (/^[A-Za-z_$][\w$]*$/.test(url) && url in consts) url = consts[url];
     url = url.replace(/env\.(\w+)/g, (_, k) => envVars[k] || `[${k}]`);
-    if (isSql) {
+    if (isWaitCall) {
+      url = waitKeyFromSource(url);
+    } else if (isSql) {
       // A SQL statement is not a URL: the concatenation squashing below would
       // eat an `a + b` in a SELECT list, and stripping quotes would strip the
       // ones around a literal. `collapseSql` in `scriptRunner.ts` normalizes

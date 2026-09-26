@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   DndContext,
@@ -28,7 +28,6 @@ import {
   Feather,
   Blend,
   BookCopy,
-  MoreHorizontal,
 } from "lucide-react";
 import type { Theme } from "@/lib/themes";
 import type { CollectionItem, Collection, Folder as CollectionFolder } from "@/lib/sampleData";
@@ -41,6 +40,7 @@ import {
 import * as ui from "@/lib/ui";
 import MethodPill from "@/components/MethodPill";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import RowMenu from "@/components/RowMenu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -49,13 +49,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import NewCollectionDialog from "./NewCollectionDialog";
 import ImportCollectionDialog from "./ImportCollectionDialog";
 import CollectionHooksDialog from "./CollectionHooksDialog";
@@ -301,85 +294,6 @@ function resolveDrop(
     });
 }
 
-type MenuAction = {
-  key: string;
-  label: string;
-  icon: React.ReactNode;
-  onSelect: () => void;
-  variant?: "destructive";
-  disabled?: boolean;
-};
-
-/**
- * The `⋯` overflow menu carried by every collection, folder and item row.
- * Folding the low-frequency actions (rename, reparent, reorder, delete) in
- * here keeps the row itself down to one or two always-visible controls, so a
- * hovered row never buries its own name in a strip of icons.
- *
- * The tooltip is controlled rather than left to Radix, and focus restore is
- * suppressed after a selected action, because the trigger wears both a
- * `TooltipTrigger` and a `DropdownMenuTrigger`: opening the menu would
- * otherwise leave the tooltip standing over it, and closing the menu hands
- * focus back to the trigger — which re-opens the tooltip on top of whatever
- * the action just opened, a `ConfirmDialog` included. Escape or a click
- * outside is not an action, so those keep Radix's normal focus restore and
- * the keyboard user still lands back on the button they came from.
- */
-function RowMenu({ id, label, actions }: { id: string; label: string; actions: MenuAction[] }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [tipOpen, setTipOpen] = useState(false);
-  const actionTakenRef = useRef(false);
-
-  return (
-    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-      <Tooltip open={tipOpen && !menuOpen} onOpenChange={setTipOpen}>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              aria-label={`More actions for ${label}`}
-              data-testid={`coll-pane-row-menu-button-${id}`}
-              className={GROUP_BTN}
-            >
-              <MoreHorizontal size={12} aria-hidden="true" />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>More actions</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent
-        onCloseAutoFocus={(e) => {
-          if (!actionTakenRef.current) return;
-          actionTakenRef.current = false;
-          e.preventDefault();
-        }}
-      >
-        {actions.map((a) =>
-          a.key === "sep" ? (
-            <Separator key={`sep-${id}`} className="my-1" />
-          ) : (
-            <DropdownMenuItem
-              key={a.key}
-              variant={a.variant}
-              disabled={a.disabled}
-              onSelect={() => {
-                actionTakenRef.current = true;
-                a.onSelect();
-              }}
-              data-testid={`coll-pane-menu-${a.key}-${id}`}
-            >
-              {a.icon}
-              {a.label}
-            </DropdownMenuItem>
-          ),
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 /** Applies a keyboard-driven reorder: moves `id` one slot up/down among
  *  `siblings`, the fallback for pointer-only drag-and-drop. */
 function moveRow(
@@ -567,6 +481,7 @@ function FolderRow({
           </Tooltip>
           <RowMenu
             id={folder.id}
+            testIdPrefix="coll-pane"
             label={folder.name}
             actions={[
               {
@@ -736,6 +651,7 @@ function ItemRow({
       <ButtonGroup className={`${GROUP_BOX} ${ROW_ACTION}`}>
         <RowMenu
           id={item.id}
+          testIdPrefix="coll-pane"
           label={item.name}
           actions={[
             {
@@ -922,6 +838,7 @@ function CollectionRow({
           </Tooltip>
           <RowMenu
             id={col.id}
+            testIdPrefix="coll-pane"
             label={col.name}
             actions={[
               {
@@ -1065,7 +982,7 @@ function TreeRow({
  * nesting depth (capped). Each row keeps at most two always-visible actions —
  * "add request" (collection and folder rows) and, on the collection row, the
  * run-hooks toggle — and folds the rest (rename, add folder / subfolder, move
- * up, move down, delete) into a `⋯` {@link DropdownMenu} so a hovered row never
+ * up, move down, delete) into a `⋯` {@link RowMenu} so a hovered row never
  * buries its own name. The run-hooks control shows an accent dot when that
  * collection has a non-empty pre-run or post-run script.
  *
@@ -1099,7 +1016,7 @@ function TreeRow({
  * `@/lib/collectionTree`, `@/components/MethodPill`, `@/components/ConfirmDialog`,
  * `@/components/ui/input`, `@/components/ui/button`,
  * `@/components/ui/button-group`, `@/components/ui/tooltip`,
- * `@/components/ui/dropdown-menu`, `./NewCollectionDialog`,
+ * `@/components/RowMenu`, `./NewCollectionDialog`,
  * `./ImportCollectionDialog`, `./CollectionHooksDialog`,
  * `@/store/collectionsSlice`, `@/store/editorSlice`.
  *

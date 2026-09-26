@@ -104,6 +104,71 @@ const SYNTAX = {
   },
 } as const;
 
+/** Hover time before a token's tooltip opens — the {@link Tooltip}
+ *  provider's own default, so tokens open like every other tooltip. */
+const TIP_DELAY_MS = 200;
+
+/**
+ * The tooltip of one engaged {@link CopyToken}: "Click to copy", or "Copied"
+ * during the flash.
+ *
+ * @remarks
+ * Status: stable — Type: internal
+ *
+ * State & behavior: stateless — always open while mounted, and the token
+ * mounts it only while it is hovered, keyboard-focused or flashing. A tree
+ * holds thousands of tokens, and a Radix tooltip apiece made opening a large
+ * response visibly slow; this way only the one token in use pays for it.
+ * Anchors to an empty overlay spread over the token rather than wrapping the
+ * token itself, so mounting it never remounts the token's own node — which
+ * would drop keyboard focus mid-Tab. Escape, scrolling, or another tooltip
+ * opening asks to close through `onDismiss`.
+ *
+ * Accessibility: purely visual — the overlay is `aria-hidden`, and the token
+ * carries the same text as its accessible name.
+ *
+ * Edge cases: the overlay needs the token to be `position: relative`; a token
+ * wrapped across lines anchors to its first line box.
+ */
+function TokenTip({
+  testId,
+  copied,
+  T,
+  onDismiss,
+}: {
+  /** The token's test id; the content lands on `<testId>-tooltip`. */
+  testId: string;
+  /** Shows "Copied" in the success color instead of "Click to copy". */
+  copied: boolean;
+  /** Palette supplying the success color. */
+  T: Theme;
+  /** Fires when Radix asks the tooltip to close — Escape, a scroll, or
+   *  another tooltip opening. */
+  onDismiss: () => void;
+}) {
+  return (
+    <Tooltip
+      open
+      onOpenChange={(open) => {
+        if (!open) onDismiss();
+      }}
+    >
+      <TooltipTrigger asChild>
+        <span
+          aria-hidden="true"
+          style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+        />
+      </TooltipTrigger>
+      <TooltipContent
+        data-testid={`${testId}-tooltip`}
+        style={{ color: copied ? T.success : undefined }}
+      >
+        {copied ? "Copied" : "Click to copy"}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 /**
  * One click-to-copy token inside {@link JNode} — a key name or a scalar value.
  *
@@ -113,10 +178,13 @@ const SYNTAX = {
  * State & behavior: owns a `copied` flag set on a successful clipboard write
  * and cleared 900ms later; the pending timer is cleared on unmount and on a
  * repeat copy. A rejected clipboard write (permission denied, insecure
- * context) leaves the token unflashed and nothing is reported. The tooltip
- * reads "Click to copy" on hover or focus and is pinned open reading "Copied"
- * for the length of the flash, so the confirmation shows even as the pointer
- * leaves.
+ * context) leaves the token unflashed and nothing is reported. Also tracks
+ * `hovered` (set 200ms after a mouse or pen enters, cleared on leave and on
+ * click) and `focused` (keyboard focus only — `:focus-visible`). While any of
+ * the three holds, it mounts {@link TokenTip}, so the tooltip reads "Click to
+ * copy" on hover or focus and is pinned open reading "Copied" for the length
+ * of the flash, so the confirmation shows even as the pointer leaves. Touch
+ * never opens it.
  *
  * Accessibility: `role="button"`, focusable, Enter and Space copy. The
  * accessible name matches the tooltip — "Click to copy", then "Copied" while
@@ -146,14 +214,22 @@ function CopyToken({
 }: CopyTokenProps) {
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     },
     [],
   );
+
+  const unhover = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    setHovered(false);
+  };
 
   const copy = async () => {
     try {
@@ -192,39 +268,52 @@ function CopyToken({
   );
 
   return (
-    <Tooltip open={copied || hovered} onOpenChange={setHovered}>
-      <TooltipTrigger asChild>
-        <span
-          role="button"
-          tabIndex={0}
-          aria-label={copied ? "Copied" : "Click to copy"}
-          data-testid={testId}
-          onClick={copy}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              copy();
-            }
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label={copied ? "Copied" : "Click to copy"}
+      data-testid={testId}
+      onClick={() => {
+        unhover();
+        void copy();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          copy();
+        }
+      }}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "touch") return;
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = setTimeout(() => setHovered(true), TIP_DELAY_MS);
+      }}
+      onPointerLeave={unhover}
+      onFocus={(e) => setFocused(e.currentTarget.matches(":focus-visible"))}
+      onBlur={() => setFocused(false)}
+      style={{
+        position: "relative",
+        color: copied ? T.success : color,
+        background: copied ? T.accentFaint : "transparent",
+        borderRadius: 3,
+        cursor: "pointer",
+        overflowWrap: "anywhere",
+        whiteSpace: "pre-wrap",
+      }}
+    >
+      {children ? children(marked) : marked}
+      {(copied || hovered || focused) && (
+        <TokenTip
+          testId={testId}
+          copied={copied}
+          T={T}
+          onDismiss={() => {
+            unhover();
+            setFocused(false);
           }}
-          style={{
-            color: copied ? T.success : color,
-            background: copied ? T.accentFaint : "transparent",
-            borderRadius: 3,
-            cursor: "pointer",
-            overflowWrap: "anywhere",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {children ? children(marked) : marked}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent
-        data-testid={`${testId}-tooltip`}
-        style={{ color: copied ? T.success : undefined }}
-      >
-        {copied ? "Copied" : "Click to copy"}
-      </TooltipContent>
-    </Tooltip>
+        />
+      )}
+    </span>
   );
 }
 
@@ -293,8 +382,10 @@ function childSlots(
  * flag that prints an elided string whole. `openAll` overrides
  * that state so an active find term cannot leave a match hidden. Recurses once
  * per nested value, so an object's children are sibling `JNode`s. Copy state
- * lives in {@link CopyToken}, one flag per token; `query` marks the term
- * inside keys and scalars, numbering hits across the whole tree in render
+ * lives in {@link CopyToken}, one flag per token; a token mounts its tooltip
+ * ({@link TokenTip}) only while hovered, keyboard-focused or flashing, so a
+ * large body costs one tooltip rather than one per token. `query` marks the
+ * term inside keys and scalars, numbering hits across the whole tree in render
  * order so `activeIndex` addresses them globally.
  *
  * Variants: scalar (null / boolean / number / string), elided string with its

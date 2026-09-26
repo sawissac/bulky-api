@@ -57,6 +57,10 @@ type Props = {
   /** Fires when the focus (expand / collapse) control is clicked — the owner
    *  decides which call, if any, takes over the pane. */
   onToggleFocus?: () => void;
+  /** Number shown in the header badge. Unset shows `call.idx + 1`; the list
+   *  passes a running request count instead, so the `api.wait` dividers
+   *  between cards don't use up numbers. */
+  step?: number;
 };
 
 /** Detail-tab container: bordered, clipped so the five tabs read as one
@@ -183,6 +187,9 @@ function AssertionRows({ T, items }: { T: Theme; items: Assertion[] }) {
  * - Assertions recorded before the first call attach to that first call.
  * - Focusing a still-`idle` call shows the full-height "run the script" note
  *   rather than a detail panel — there is nothing recorded to fill it.
+ * - An `idle` call flagged `skipped` — the last run stopped before reaching
+ *   it, e.g. the script threw reading a 404 body — says "Not reached" and
+ *   points at the log instead of the "run the script" note.
  *
  * Dependencies: `lucide-react`, `react-redux`, `@/lib/toCurl`,
  * `@/lib/callMatch`, `@/store/runnerSlice`, `@/components/ui/progress`
@@ -207,6 +214,7 @@ export default function CallCard({
   defaultOpen,
   focused,
   onToggleFocus,
+  step,
 }: Props) {
   const dispatch = useDispatch();
   const [open, setOpen] = useState(defaultOpen ?? false);
@@ -369,7 +377,7 @@ export default function CallCard({
               color: isOpen ? T.accent : T.textDim,
             }}
           >
-            {call.idx + 1}
+            {step ?? call.idx + 1}
           </span>
         </div>
 
@@ -680,7 +688,9 @@ export default function CallCard({
               fontStyle: "italic",
             }}
           >
-            Run the script to see response data.
+            {call.skipped
+              ? "Not reached — the script stopped before this call. Check the log for why."
+              : "Run the script to see response data."}
           </span>
         </div>
       )}

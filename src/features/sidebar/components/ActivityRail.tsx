@@ -10,6 +10,7 @@ import {
   FileLock,
   FolderDown,
   FolderOpen,
+  HardDrive,
   Laptop,
   SlidersHorizontal,
   TableProperties,
@@ -52,6 +53,7 @@ const TABS: Array<{ id: SidebarTab; label: string; Icon: React.ElementType }> = 
   { id: "vars", label: "Vars", Icon: TableProperties },
   { id: "db", label: "DB", Icon: Database },
   { id: "file", label: "File", Icon: FolderDown },
+  { id: "storage", label: "Storage", Icon: HardDrive },
 ];
 
 /**

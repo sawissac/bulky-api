@@ -4,7 +4,7 @@ import { removeItem } from './collectionsSlice';
 
 export type LayoutKey = 'balanced' | 'editor-focus' | 'response-focus' | 'stacked';
 export type ResponseView = 'cards' | 'waterfall' | 'docs';
-export type SidebarTab = 'collections' | 'env' | 'vars' | 'db' | 'file';
+export type SidebarTab = 'collections' | 'env' | 'vars' | 'db' | 'file' | 'storage';
 export type DisplayMode = 'browser' | 'fullscreen';
 /** Sidebar/response-panel decorative wash — one of the `app-panel-texture--*`
  *  utilities in `globals.css`, or `'none'` for a flat panel. */

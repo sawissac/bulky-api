@@ -21,6 +21,7 @@ import ApiDocs from '@/features/response-panel/components/ApiDocs';
 import ApiWaterfall from '@/features/response-panel/components/ApiWaterfall';
 import AuthTab from '@/features/response-panel/components/AuthTab';
 import CallCard from '@/features/response-panel/components/CallCard';
+import WaitDivider from '@/features/response-panel/components/WaitDivider';
 import HeadTab from '@/features/response-panel/components/HeadTab';
 import PayloadTab from '@/features/response-panel/components/PayloadTab';
 import RespTab from '@/features/response-panel/components/RespTab';
@@ -44,6 +45,8 @@ import {
   MOCK_CALL_CACHED,
   MOCK_CALL_ERROR,
   MOCK_CALL_SSE,
+  MOCK_WAIT,
+  MOCK_WAIT_RUNNING,
   MOCK_JSON,
   MOCK_REQ_HEADERS,
   MOCK_RES_HEADERS,
@@ -205,7 +208,7 @@ const ENTRIES: Entry[] = [
     props: '{ T: Theme; call: ApiCall; defaultOpen?: boolean }',
     group: 'Response panel',
     mount: 'store',
-    note: 'Collapsible per-call card hosting the four tabs; dispatches the cache toggle.',
+    note: 'Collapsible per-call card hosting the four tabs; dispatches the cache toggle. An `api.wait` step renders as a WaitDivider line instead — the last two cases.',
   },
   {
     id: 'api-docs',
@@ -771,6 +774,16 @@ export default function MocksComponentsPage() {
               </Case>
               <Case title="Collapsed · error">
                 <CallCard T={T} call={MOCK_CALL_ERROR} />
+              </Case>
+              <Case title="Wait step · running">
+                <div className="bg-app-panel">
+                  <WaitDivider T={T} call={MOCK_WAIT_RUNNING} />
+                </div>
+              </Case>
+              <Case title="Wait step · done">
+                <div className="bg-app-panel">
+                  <WaitDivider T={T} call={MOCK_WAIT} />
+                </div>
               </Case>
             </Section>
 

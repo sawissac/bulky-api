@@ -6,6 +6,7 @@ import type { Theme } from '@/lib/themes';
 import { statusColor, methodColor } from '@/lib/themes';
 import { selectBuiltCalls, selectRunStartedAt } from '@/store/runnerSlice';
 import { displayUrl } from '@/lib/callMatch';
+import { formatWaitMs, isWait, plannedWaitMs } from '@/lib/wait';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -33,6 +34,10 @@ type Props = {
  * Variants: an idle (analyzed, not yet run) call draws in the border color at
  * 0.2 opacity; a completed or pending one in the theme accent; a failed one in
  * the error color. The status-code chip keeps the green/amber/red outcome color.
+ * An `api.wait` step (`isWait`) reads as dead time instead: a `WAIT` label with
+ * the planned pause where the URL would be, and a dashed line across its span
+ * in the dim text color — the accent while it runs, pulsing, and the error
+ * color if it was stopped — matching the list's {@link WaitDivider}.
  * Each bar is a `size="sm"` {@link Progress} (`src/components/ui/progress.tsx`)
  * absolutely positioned inside the row's track by `left`/`width` — `100`
  * (solid run + trailing pip) once the call has a span, `null` (indeterminate
@@ -62,7 +67,7 @@ type Props = {
  * A run whose calls all lack timestamps falls back to the run's own start,
  * which puts every bar at 0.
  *
- * Dependencies: `react-redux`, `@/store/runnerSlice`, `@/lib/themes`,
+ * Dependencies: `react-redux`, `@/store/runnerSlice`, `@/lib/themes`, `@/lib/wait`,
  * `@/components/ui/tooltip`, `@/components/ui/progress` ({@link Progress}).
  *
  * @example
@@ -135,6 +140,9 @@ export default function ApiWaterfall({ T }: Props) {
 
           const url = displayUrl(call.url);
           const urlDisplay = url.length > 38 ? '…' + url.slice(-36) : url;
+          const wait = isWait(call);
+          const planned = wait ? plannedWaitMs(call) : null;
+          const waitLabel = planned !== null ? formatWaitMs(planned) : url;
 
           return (
             <Tooltip key={call.idx}>
@@ -153,7 +161,7 @@ export default function ApiWaterfall({ T }: Props) {
                   {/* Method + URL */}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 700, color: mc }}>{call.method}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 700, color: wait ? T.textDim : mc }}>{call.method}</span>
                       {call.statusCode && (
                         <span
                           style={{
@@ -172,11 +180,26 @@ export default function ApiWaterfall({ T }: Props) {
                         </span>
                       )}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{urlDisplay}</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: wait ? T.textDim : T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{wait ? waitLabel : urlDisplay}</div>
                   </div>
 
                   {/* Waterfall bar */}
                   <div style={{ position: 'relative', height: 14, background: T.bg, borderRadius: 3, overflow: 'hidden' }}>
+                    {wait ? (
+                      <div
+                        role="img"
+                        aria-label={`Wait ${waitLabel} timing`}
+                        style={{
+                          position: 'absolute',
+                          top: 'calc(50% - 1px)',
+                          left: `${barLeft}%`,
+                          width: `${barWidth}%`,
+                          borderTop: `2px dashed ${call.status === 'error' ? T.error : isPending ? T.accent : T.textDim}`,
+                          opacity: call.status === 'idle' ? 0.3 : 0.8,
+                          animation: isPending ? 'pulse 1s ease-in-out infinite' : undefined,
+                        }}
+                      />
+                    ) : (
                     <Progress
                       size="sm"
                       aria-label={`${call.method} ${urlDisplay} timing`}
@@ -189,6 +212,7 @@ export default function ApiWaterfall({ T }: Props) {
                       } as CSSProperties}
                       value={isPending ? null : 100}
                     />
+                    )}
                   </div>
 
                   {/* Duration */}
@@ -198,7 +222,7 @@ export default function ApiWaterfall({ T }: Props) {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                {call.method} {url}
+                {wait ? `Wait ${waitLabel}` : `${call.method} ${url}`}
                 {call.statusCode ? ` — ${call.statusCode}` : ''}
                 {call.duration ? ` — ${call.duration}ms` : ''}
               </TooltipContent>

@@ -90,6 +90,9 @@ env.newUserId = s.data.id;                               // written back to the 
 - With no `opts.auth`, a non-empty `env.token` becomes a bearer header on its
   own. Leave `token: ""` for an unauthenticated service.
 - `api.server.*` behaves like `api.*`.
+- `api.wait(ms)` pauses between calls — polling, rate limits — and shows as a
+  divider line in the call list; the global `sleep(ms)` pauses without one.
+  Stopping the run cancels either.
 - Top-level `await` works. No `process`, `require`, or filesystem.
 - Limits: 30s per call, 50 calls per run, bodies truncated past 20k chars. Keep
   loops under the call cap and say so in the script when a guard trims work.

@@ -84,6 +84,11 @@ export type ApiCall = {
    *  the editor's socket composer needs this one to know when to show. */
   wsOpen?: boolean;
   assertions?: Assertion[];
+  /** Set when a run ended with this call still `pending` — the script threw
+   *  or was stopped before reaching it (a 404 body the next line can't read,
+   *  say). The call is settled back to `idle`; the flag only changes what its
+   *  card says. The next run's fresh stubs drop it. */
+  skipped?: boolean;
 };
 
 export type LogEntry = {

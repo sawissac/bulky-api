@@ -9,6 +9,7 @@ import EnvPane from "./EnvPane";
 import VarsPane from "./VarsPane";
 import DbPane from "./DbPane";
 import FilePane from "./FilePane";
+import StoragePane from "./StoragePane";
 
 const PANE_LABELS: Record<SidebarTab, string> = {
   collections: "Requests",
@@ -16,12 +17,13 @@ const PANE_LABELS: Record<SidebarTab, string> = {
   vars: "Vars",
   db: "DB",
   file: "File",
+  storage: "Storage",
 };
 
 /**
  * Body of the left pane: renders the pane the active section owns — collections,
- * environments, extracted variables, database connections, or file
- * import/export. Section switching
+ * environments, extracted variables, database connections, file
+ * import/export, or browser storage. Section switching
  * lives in {@link ActivityRail}, not here, so this component only reads which
  * tab is selected; each pane supplies its own header.
  *
@@ -32,10 +34,12 @@ const PANE_LABELS: Record<SidebarTab, string> = {
  * Exactly one pane is mounted at a time, so a pane's own local state resets
  * when the user leaves and returns to it.
  *
- * Variants: one per `SidebarTab` — `collections`, `env`, `vars`, `db`, `file`.
+ * Variants: one per `SidebarTab` — `collections`, `env`, `vars`, `db`, `file`,
+ * `storage`.
  *
  * Composition: renders {@link CollPane}, {@link EnvPane}, {@link VarsPane},
- * {@link DbPane} or {@link FilePane}, each handed the active theme. Sits inside
+ * {@link DbPane}, {@link FilePane} or {@link StoragePane}, each handed the
+ * active theme. Sits inside
  * the resizable pane group and fills it edge to edge — no title strip of its
  * own.
  *
@@ -98,6 +102,7 @@ function Sidebar({ T }: SidebarProps) {
         {tab === "vars" && <VarsPane T={T} />}
         {tab === "db" && <DbPane T={T} />}
         {tab === "file" && <FilePane T={T} />}
+        {tab === "storage" && <StoragePane T={T} />}
       </div>
     </div>
   );

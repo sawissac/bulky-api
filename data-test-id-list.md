@@ -19,7 +19,7 @@
 
 `activity-rail-nav` — ActivityRail / rail root nav
 `activity-rail-env-button` — ActivityRail / active environment button
-`activity-rail-tab-<tab-id>` — ActivityRail / section tab (per sidebar tab: collections, env, vars, file)
+`activity-rail-tab-<tab-id>` — ActivityRail / section tab (per sidebar tab: collections, env, vars, db, file, storage)
 `activity-rail-status` — ActivityRail / run status live region
 `activity-rail-call-count` — ActivityRail / built-call count
 `activity-rail-display-button` — ActivityRail / display-mode picker trigger
@@ -256,3 +256,45 @@ Ids derive from the caller's `testId` base — the component hardcodes none.
 `db-pane-dsn-input` — DbPane / paste a connection string to fill the fields
 `db-pane-test-button` — DbPane / run `select 1` against this connection
 `db-pane-test-message` — DbPane / test outcome (live region)
+
+## StoragePane (src/features/sidebar/components/StoragePane.tsx)
+
+`storage-pane-add-button` — StoragePane / open the dialog to create an entry in the selected store
+`storage-pane-refresh-button` — StoragePane / re-read local, session and cookie stores
+`storage-pane-kind-button-local` / `storage-pane-kind-button-session` / `storage-pane-kind-button-cookie` — StoragePane / store switch
+`storage-pane-kind-count-local` / `storage-pane-kind-count-session` / `storage-pane-kind-count-cookie` — StoragePane / entry count per store
+`storage-pane-filter-input` — StoragePane / filter by key or value (`-clear-button` derived by `Input`)
+`storage-pane-list` — StoragePane / entry list container
+`storage-pane-row-<id>` — StoragePane / one entry row (per storage key; repeated cookie names suffixed `~n`)
+`storage-pane-toggle-button-<id>` — StoragePane / expand-collapse the entry's value
+`storage-pane-row-menu-button-<id>` — StoragePane / per-row `⋯` overflow menu trigger (via shared `RowMenu`)
+`storage-pane-menu-view-<id>` — StoragePane / overflow menu — view or hide the value
+`storage-pane-menu-copy-<id>` — StoragePane / overflow menu — copy the value
+`storage-pane-menu-edit-<id>` — StoragePane / overflow menu — edit or rename the entry
+`storage-pane-menu-duplicate-<id>` — StoragePane / overflow menu — create a copy under a free `<key>-copy` key
+`storage-pane-menu-delete-<id>` — StoragePane / overflow menu — delete (opens ConfirmDialog)
+`storage-pane-value-<id>` — StoragePane / expanded value block
+`storage-pane-empty-message` — StoragePane / reading, empty-store and no-match states
+`storage-pane-error-message` — StoragePane / store blocked by the browser
+`storage-pane-notice-message` — StoragePane / delete the browser didn't fully honor
+
+## StorageEntryDialog (src/features/sidebar/components/StorageEntryDialog.tsx)
+
+`storage-entry-dialog-root` — StorageEntryDialog / dialog root
+`storage-entry-dialog-key-input` — StorageEntryDialog / key or cookie name (`-clear-button` derived by `Input`)
+`storage-entry-dialog-value-input` — StorageEntryDialog / value textarea
+`storage-entry-dialog-expiry-button-<id>` — StorageEntryDialog / cookie lifetime (session, 1d, 7d, 30d, 1y)
+`storage-entry-dialog-error-message` — StorageEntryDialog / validation or browser error
+`storage-entry-dialog-close-button` — StorageEntryDialog / header close
+`storage-entry-dialog-cancel-button` — StorageEntryDialog / cancel
+`storage-entry-dialog-save-button` — StorageEntryDialog / create or save
+
+## RowMenu (src/components/RowMenu.tsx)
+
+`<prefix>-row-menu-button-<id>` — RowMenu / `⋯` trigger (prefix and id from the caller)
+`<prefix>-menu-<key>-<id>` — RowMenu / one menu item (per action key)
+
+## WaitDivider (src/features/response-panel/components/WaitDivider.tsx)
+
+`wait-divider-<idx>` — WaitDivider / one `api.wait` step divider (per list slot)
+`wait-divider-status-message-<idx>` — WaitDivider / countdown, actual pause, "not reached" or "stopped at …"

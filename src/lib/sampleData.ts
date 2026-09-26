@@ -209,11 +209,11 @@ Everything the runtime injects into a script: the \`api\` client, the \`env\` ba
 
 | Name | Type | Description |
 |------|------|-------------|
-| \`api\` | \`BulkyApi\` | HTTP client — \`get\`, \`post\`, \`put\`, \`patch\`, \`delete\`, \`options\`, \`head\`, \`sse\`, \`stream\`, \`parallel\`, \`assert\`, plus \`query.pgsql\` for raw SQL |
+| \`api\` | \`BulkyApi\` | HTTP client — \`get\`, \`post\`, \`put\`, \`patch\`, \`delete\`, \`options\`, \`head\`, \`sse\`, \`stream\`, \`parallel\`, \`assert\`, \`wait\`, plus \`query.pgsql\` for raw SQL |
 | \`env\` | \`Record<string, string>\` | Active environment variables. Writable — \`env.x = v\` / \`env.set('x', v)\` is visible to later calls |
 | \`console\` | \`Console\` | \`.log\` / \`.warn\` / \`.error\` / \`.info\` — output lands in the Console panel |
 | \`expect\` | \`(actual) => Matchers\` | Records a pass/fail check. Never throws — see **Assertions** |
-| \`sleep\` | \`(ms) => Promise<void>\` | Waits \`ms\` milliseconds. Rejects at once if the run is stopped |
+| \`sleep\` | \`(ms) => Promise<void>\` | Waits \`ms\` milliseconds without a trace in the call list — \`api.wait\` is the visible version. Rejects at once if the run is stopped |
 
 ### Methods
 
@@ -230,6 +230,7 @@ Everything the runtime injects into a script: the \`api\` client, the \`env\` ba
 | \`api.stream(url, body?, opts?, onEvent?)\` | JSON | \`Promise<{ close(), done }>\` — POST (default) an \`event-stream\` reply, rendered live |
 | \`api.parallel(tasks, opts?)\` | — | \`Promise<Result[]>\` — runs calls at once, results in input order, see **Parallel calls** |
 | \`api.assert(condition, message?)\` | — | \`void\` — records a pass/fail, never throws |
+| \`api.wait(ms)\` | — | \`Promise<void>\` — pauses \`ms\` milliseconds and shows as a divider line (with a countdown) between the call cards and as a dashed bar in the waterfall; rejects at once if the run is stopped |
 | \`api.file(accept?)\` | — | \`Promise<File>\` — opens a native file picker |
 | \`api.form(fields)\` | — | \`FormData\` — builds a multipart body |
 | \`api.query.pgsql(sql, params?, opts?)\` | — | \`Promise<SqlResult<T>>\` — raw SQL against Postgres, see **Postgres** |
@@ -374,7 +375,7 @@ Assigning — \`env.token = r.data.token\` or \`env.set('token', r.data.token)\`
 | \`.toHaveStatus(code)\` | \`actual\` or \`actual.status\` equals \`code\` |
 | \`.toBeOk()\` | \`actual.ok\` (or \`actual\`) is truthy |
 
-Prefix any matcher with \`.not\` to invert it. \`sleep(ms)\` pauses between checks — handy for polling.
+Prefix any matcher with \`.not\` to invert it. \`api.wait(ms)\` (or \`sleep(ms)\`) pauses between checks — handy for polling.
 
 \`\`\`ts
 const r = await api.get('{{baseUrl}}/users');
@@ -599,7 +600,7 @@ expect(one.data.id).toBe(first.id);
 api.assert(one.data.email.includes('@'), 'email looks valid');
 \`\`\`
 
-> Prefix any matcher with \`.not\` to invert it. \`sleep(ms)\` waits between checks — useful when polling for a state change.`,
+> Prefix any matcher with \`.not\` to invert it. \`api.wait(ms)\` (or \`sleep(ms)\`) waits between checks — useful when polling for a state change.`,
     code: `const list = await api.get(env.baseUrl + '/users');
 expect(list).toHaveStatus(200);
 expect(list).toBeOk();

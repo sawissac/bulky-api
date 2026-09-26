@@ -18,6 +18,7 @@ import {
 } from "./dbConnection";
 import { toRunnableJs } from "./transpile";
 import { makeExpect } from "./assertions";
+import { WAIT_METHOD, isWait, waitMs } from "./wait";
 import { isRawBody, summarizeBody } from "./requestBody";
 
 type OnUpdate = (calls: ApiCall[], logs: LogEntry[]) => void;
@@ -248,7 +249,12 @@ export async function runScript(
   const allAssertions: Assertion[] = [];
 
   const recordAssertion = (a: Assertion) => {
-    const target = calls[calls.length - 1];
+    // The latest request, skipping `api.wait` steps — an expectation written
+    // after a pause is still about the call before it.
+    let target: ApiCall | undefined;
+    for (let i = calls.length - 1; i >= 0 && !target; i--) {
+      if (!isWait(calls[i])) target = calls[i];
+    }
     if (target) (target.assertions ??= []).push(a);
     else pendingAssertions.push(a);
     allAssertions.push(a);
@@ -1295,6 +1301,55 @@ export async function runScript(
     return results as ParallelResults<T>;
   };
 
+  // `api.wait` — the global `sleep`, but recorded as its own step (method
+  // `WAIT`, planned ms in `url`) so the Call Script panel and waterfall show
+  // where the run spent time between requests. Takes no step-mode pause and
+  // no queued assertions; a `// note:` above it labels the wait itself.
+  const makeWait = async (ms: unknown): Promise<void> => {
+    if (abortSignal?.aborted) throw new Error("Script aborted");
+    const pause = waitMs(ms);
+    const rec: ApiCall = {
+      idx: calls.length,
+      method: WAIT_METHOD,
+      url: String(pause),
+      urlExpr: String(pause),
+      status: "pending",
+      statusCode: null,
+      response: null,
+      responseHeaders: {},
+      requestBody: null,
+      requestHeaders: {},
+      authInfo: null,
+      duration: 0,
+      error: null,
+      timestamp: new Date().toISOString(),
+      cache: false,
+      note: pendingNote ?? undefined,
+    };
+    pendingNote = null;
+    calls.push(rec);
+    onUpdate(
+      calls.map((c) => ({ ...c })),
+      [...logs],
+    );
+
+    const t0 = Date.now();
+    try {
+      await sleep(pause);
+      rec.status = "success";
+    } catch (e) {
+      rec.status = "error";
+      rec.error = "Aborted by user";
+      throw e;
+    } finally {
+      rec.duration = Date.now() - t0;
+      onUpdate(
+        calls.map((c) => ({ ...c })),
+        [...logs],
+      );
+    }
+  };
+
   const api = {
     get: (url: string, opts?: CallOpts) =>
       makeCall("GET", url, null, opts, false),
@@ -1340,6 +1395,10 @@ export async function runScript(
       onEvent?: (event: { event: string; data: unknown }) => void,
     ) => makeIoCall(url, opts, onEvent),
     parallel,
+    // Pause between calls — polling a job until it finishes, pacing a
+    // rate-limited host. Rejects at once when the run is stopped instead of
+    // holding Stop hostage, and leaves a step in the timeline (see makeWait).
+    wait: (ms: number) => makeWait(ms),
     _note: (msg: string) => {
       pendingNote = msg;
     },

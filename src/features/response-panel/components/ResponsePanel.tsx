@@ -30,7 +30,9 @@ import {
 import { selectActiveId } from "@/store/collectionsSlice";
 import { selectActiveEnv, setVar } from "@/store/collectionsSlice";
 import { statusColor } from "@/lib/themes";
+import { isWait } from "@/lib/wait";
 import CallCard from "./CallCard";
+import WaitDivider from "./WaitDivider";
 import ApiWaterfall from "./ApiWaterfall";
 import ApiDocs from "./ApiDocs";
 import { Button } from "@/components/ui/button";
@@ -63,7 +65,8 @@ const STEP_BTN = `${GROUP_BTN} rounded-md data-active:bg-app-warn/15 data-active
  *  including the `bg-app-panel` backing that keeps the panel's dot-grid
  *  texture from bleeding through the card. */
 const LIST =
-  "mx-2 mb-2 flex flex-col overflow-hidden rounded-md border border-app-border bg-app-panel divide-y divide-app-border";
+  "mx-2 mb-2 flex flex-col overflow-hidden rounded-md border border-app-border bg-app-panel divide-y divide-app-border " +
+  "[&>*:has(+[data-wait-step])]:border-b-0";
 
 /** Row block flush edge-to-edge inside `LIST`, matching `VarsPane`'s row. */
 const ROW =
@@ -248,8 +251,11 @@ type LogLineProps = {
  * show; the tests strip shows the run's pass/fail tally and every recorded
  * expectation.
  *
- * Composition: renders {@link CallCard} rows inside one bordered `LIST` card
- * — or, while a call is focused, that one row alone, stretched to the card's
+ * Composition: renders {@link CallCard} rows inside one bordered `LIST` card,
+ * with a {@link WaitDivider} line in place of each `api.wait` step
+ * (`isWait`) — the list drops the border of any row a divider follows, so the
+ * divider is the only line between those two cards — or, while a call is
+ * focused, that one row alone, stretched to the card's
  * full height with the surrounding scroll container switched to
  * `overflow-hidden` so the row owns the scrolling instead,
  * or {@link ApiWaterfall} / {@link ApiDocs} in their place, and one
@@ -292,6 +298,10 @@ type LogLineProps = {
  *   nowhere to promote a variable to.
  * - More than four built calls → the status dots cap at four and shift toward
  *   red as the count climbs past ten.
+ * - `api.wait` steps are dividers in the list and dashed bars in the
+ *   waterfall, but they are not requests: the header's dots and count skip
+ *   them, the cards number requests only (`step`), and the docs view leaves
+ *   them out. A divider has no focus control.
  * - Console drag past a bound → height is clamped to
  *   {@link CONSOLE_MIN}/{@link CONSOLE_MAX}, so the panel never collapses the
  *   content view or the handle out of reach.
@@ -366,12 +376,15 @@ function ResponsePanel({
   const failedAssertions = assertions.filter((a) => !a.ok).length;
   const passedAssertions = assertions.length - failedAssertions;
 
+  const requests = builtCalls.filter((c) => !isWait(c));
+  const stepOf = new Map(requests.map((c, i) => [c.idx, i + 1]));
+
   const dots = (() => {
-    const count = builtCalls.length;
+    const count = requests.length;
     const overflow = count > 4;
     const heat = count > 10;
     const heatLevel = heat ? Math.min(1, (count - 10) / 20) : 0;
-    return builtCalls.slice(0, 4).map((c, i) => {
+    return requests.slice(0, 4).map((c, i) => {
       let bg =
         c.status === "idle"
           ? T.border
@@ -476,7 +489,7 @@ function ResponsePanel({
             />
           ))}
         </div>
-        <span className={`${ui.meta} shrink-0`}>{builtCalls.length}</span>
+        <span className={`${ui.meta} shrink-0`}>{requests.length}</span>
       </div>
       )}
 
@@ -489,24 +502,29 @@ function ResponsePanel({
         {view === "waterfall" ? (
           <ApiWaterfall T={T} />
         ) : view === "docs" ? (
-          <ApiDocs T={T} calls={builtCalls} />
+          <ApiDocs T={T} calls={requests} />
         ) : builtCalls.length === 0 ? (
           <p className="p-4 text-center font-description text-[12px] text-app-dim">
             No API calls detected in this script
           </p>
         ) : (
           <div className={`${LIST} ${focusedCall ? "min-h-0 flex-1" : ""}`}>
-            {(focusedCall ? [focusedCall] : builtCalls).map((call) => (
-              <CallCard
-                key={call.idx}
-                T={T}
-                call={call}
-                focused={focusedCall !== null}
-                onToggleFocus={() =>
-                  setFocusedIdx(focusedCall ? null : call.idx)
-                }
-              />
-            ))}
+            {(focusedCall ? [focusedCall] : builtCalls).map((call) =>
+              isWait(call) ? (
+                <WaitDivider key={call.idx} T={T} call={call} />
+              ) : (
+                <CallCard
+                  key={call.idx}
+                  T={T}
+                  call={call}
+                  step={stepOf.get(call.idx)}
+                  focused={focusedCall !== null}
+                  onToggleFocus={() =>
+                    setFocusedIdx(focusedCall ? null : call.idx)
+                  }
+                />
+              ),
+            )}
           </div>
         )}
       </div>

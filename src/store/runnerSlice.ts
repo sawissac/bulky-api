@@ -58,7 +58,23 @@ function applyStored(nc: ApiCall, existing: ApiCall): ApiCall {
     wsEvents: existing.wsEvents,
     wsOpen: existing.wsOpen,
     assertions: existing.assertions,
+    skipped: existing.skipped,
   };
+}
+
+/**
+ * A stub is marked `pending` at run start and only leaves that state when a
+ * live call claims it. Once the run is over, any still `pending` never ran —
+ * the script threw first (a 404 whose body the next line can't read, a
+ * network error) or was stopped — and would otherwise spin forever, since
+ * every later merge copies its status forward. Settles each to `idle`,
+ * flagged `skipped`. Returns `calls` untouched when nothing is pending.
+ */
+function settleUnrun(calls: ApiCall[]): ApiCall[] {
+  if (!calls.some((c) => c.status === "pending")) return calls;
+  return calls.map((c) =>
+    c.status === "pending" ? { ...c, status: "idle" as const, skipped: true } : c,
+  );
 }
 
 /**
@@ -208,6 +224,10 @@ const runnerSlice = createSlice({
       if (!action.payload) {
         state.paused = false;
         state.runPreview = [];
+        state.builtCalls = settleUnrun(state.builtCalls);
+        for (const id of Object.keys(state.callsByItemId)) {
+          state.callsByItemId[id] = settleUnrun(state.callsByItemId[id]);
+        }
       }
     },
     setStepMode(state, action: PayloadAction<boolean>) {
@@ -256,10 +276,16 @@ const runnerSlice = createSlice({
       }
     },
     hydrateRunner(_state, action: PayloadAction<Partial<RunnerState>>) {
+      // A save taken mid-run holds that run's `pending` stubs, and no run is
+      // going after a reload to settle them.
       return {
         ...initialState,
-        builtCalls: action.payload.builtCalls ?? [],
-        callsByItemId: action.payload.callsByItemId ?? {},
+        builtCalls: settleUnrun(action.payload.builtCalls ?? []),
+        callsByItemId: Object.fromEntries(
+          Object.entries(action.payload.callsByItemId ?? {}).map(
+            ([id, calls]) => [id, settleUnrun(calls)],
+          ),
+        ),
         currentItemId: action.payload.currentItemId ?? null,
       };
     },

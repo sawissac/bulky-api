@@ -21,6 +21,7 @@ import {
   Database,
   FolderDown,
   FolderUp,
+  HardDrive,
   Download,
   Upload,
   SquareTerminal,
@@ -506,6 +507,7 @@ export default function CodeEditor({
           { id: "vars", label: "Go to Vars", Icon: TableProperties },
           { id: "db", label: "Go to DB", Icon: Database },
           { id: "file", label: "Go to File", Icon: FolderDown },
+          { id: "storage", label: "Go to Storage", Icon: HardDrive },
         ] as Array<{ id: SidebarTab; label: string; Icon: typeof FolderOpen }>
       ).map(({ id, label, Icon }) => ({
         id: `action-sidebar-${id}`,

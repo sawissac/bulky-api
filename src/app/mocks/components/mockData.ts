@@ -100,6 +100,37 @@ export const MOCK_CALL_CACHED: ApiCall = {
 
 export const MOCK_CALLS: ApiCall[] = [MOCK_CALL, MOCK_CALL_CACHED, MOCK_CALL_ERROR, MOCK_CALL_SSE];
 
+/** A finished `api.wait(1500)` step — WaitDivider's resting state. */
+export const MOCK_WAIT: ApiCall = {
+  ...MOCK_CALL,
+  idx: 4,
+  method: 'WAIT',
+  url: '1500',
+  urlExpr: '1500',
+  statusCode: null,
+  response: null,
+  responseHeaders: {},
+  requestBody: null,
+  requestHeaders: {},
+  authInfo: null,
+  duration: 1503,
+  timestamp: '2026-08-24T10:12:04.563Z',
+  note: 'give the export job time to finish',
+};
+
+/** An `api.wait(60000)` still running — stamped when the gallery loads, so
+ *  its bar and countdown move for the first minute on the page. */
+export const MOCK_WAIT_RUNNING: ApiCall = {
+  ...MOCK_WAIT,
+  idx: 5,
+  url: '60000',
+  urlExpr: '60000',
+  status: 'pending',
+  duration: 0,
+  timestamp: new Date().toISOString(),
+  note: undefined,
+};
+
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD', 'SSE', 'PGSQL', 'DOCS'];
 
 export const STATUS_CODES: (number | null)[] = [null, 200, 201, 301, 400, 404, 429, 500];
